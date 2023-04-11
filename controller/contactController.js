@@ -35,11 +35,12 @@ const sendEmail = async (req, res) => {
 
 const addContactData = async (req, res) => {
   const { email, name, password } = req.body;
-  const newContact = new Contact({
+  const parsedContact = {
     email,
     name,
     password,
-  });
+  };
+  const newContact = new Contact(parsedContact);
 
   try {
     const savedContact = await newContact.save();
