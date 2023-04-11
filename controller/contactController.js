@@ -43,13 +43,9 @@ const addContactData = async (req, res) => {
   const newContact = new Contact(parsedContact);
 
   try {
+    console.log("In here");
     const savedContact = await newContact.save();
-    res.status(200).json({
-      status: "success",
-      data: {
-        savedContact,
-      },
-    });
+    res.status(200).json({ message: `Contact Saved and the obj is ${savedContact}` });
   } catch (err) {
     res.status(400).json({
       status: "fail",
