@@ -102,7 +102,6 @@ const addNewBlog = async (req, res, next) => {
   };
   const newBlog = new Blog(parsedBlog);
   try {
-    console.log(date);
     const savedBlog = await newBlog.save();
     res.status(200).json({ message: `Blog Saved and the obj is ${savedBlog}` });
   } catch (error) {
