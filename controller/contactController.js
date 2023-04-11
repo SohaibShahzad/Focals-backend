@@ -9,7 +9,7 @@ const sendEmail = async (req, res) => {
   } catch (err) {
     console.log("Not Fetched");
   }
-  console.log(email);
+  console.log(savedContact[0].email);
   console.log(name);
   console.log(message);
 
