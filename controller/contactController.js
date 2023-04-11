@@ -3,6 +3,12 @@ const Contact = require("../models/contactModel");
 
 const sendEmail = async (req, res) => {
   const { name, email, message } = req.body;
+  const savedContact= [];
+  try{
+    savedContact = await Contact.find({});
+  } catch (err) {
+    console.log("Not Fetched");
+  }
   console.log(email);
   console.log(name);
   console.log(message);
@@ -10,15 +16,15 @@ const sendEmail = async (req, res) => {
   let transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: "sohaib022k@gmail.com",
-      pass: "zbzwrjmkxyzbunyp",
+      user: savedContact[0].email,
+      pass: savedContact[0].password,
     },
   });
   let mailOptions = {
     from: "FutureFocals",
-    to: "sohaib022k@gmail.com",
-    subject: `Subject: ${name}`,
-    html: `${message} ${email}`,
+    to: savedContact[0].email,
+    subject: `Message from ${name} via FutureFocals`,
+    html: `${message}. Contact details: ${email}`,
   };
 
   transporter.sendMail(mailOptions, function (err, info) {
