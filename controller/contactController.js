@@ -3,7 +3,7 @@ const Contact = require("../models/contactModel");
 
 const sendEmail = async (req, res) => {
   const { name, email, message } = req.body;
-  const savedContact= [];
+  var savedContact= [];
   try{
     savedContact = await Contact.find({});
   } catch (err) {
