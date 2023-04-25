@@ -22,7 +22,6 @@ const upload = multer({ dest: "public/uploads/" });
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
     credentials: true,
   })
 );
