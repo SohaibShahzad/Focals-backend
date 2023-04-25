@@ -1,5 +1,6 @@
 const Admin = require("../models/adminModel");
 const passport = require("passport");
+const jwt = require("jsonwebtoken");
 
 const getAllAdmins = async (req, res, next) => {
   try {
@@ -12,33 +13,23 @@ const getAllAdmins = async (req, res, next) => {
 
 const addNewAdmin = async (req, res, next) => {
   const encryptedpassword = req.body.password;
-  Admin.register({username: req.body.username, hint: req.body.hint}, req.body.password, function(err, user){
-    if(err){
-      console.log(err);
-      res.status(500).json({message: err.message});
-    } else {
-      passport.authenticate("local")(req, res, function(){
-        res.status(200).json({message: "Admin created"});
-      });
+  Admin.register(
+    { username: req.body.username, hint: req.body.hint },
+    req.body.password,
+    function (err, user) {
+      if (err) {
+        console.log(err);
+        res.status(500).json({ message: err.message });
+      } else {
+        passport.authenticate("admin")(req, res, function () {
+          res
+            .status(200)
+            .cookie("connect.sid", req.sessionID)
+            .json({ message: "Admin created" });
+        });
+      }
     }
-
-  });
-  // const { username } = req.body;
-  // const encryptedpassword = req.body.password;
-  // const password = encryptedpassword;
-  // const encryptedAdmin = {
-  //   username,
-  //   password,
-  // };
-  // const newAdmin = new Admin(encryptedAdmin);
-  // try {
-  //   const savedAdmin = await newAdmin.save();
-  //   res
-  //     .status(200)
-  //     .json({ message: `Portfolio Saved and the obj is ${savedAdmin}` });
-  // } catch (error) {
-  //   next(error);
-  // }
+  );
 };
 
 const deleteAdmin = async (req, res, next) => {
@@ -52,20 +43,17 @@ const deleteAdmin = async (req, res, next) => {
 };
 
 const updateAdminById = async (req, res, next) => {
-    const { username } = req.body;
-    const encryptedpassword = req.body.password;
-    const password = encryptedpassword;
-    const encryptedAdmin = {
-      username,
-      password,
-    };
-    const newAdmin = new Admin(encryptedAdmin);
-    try {
+  const { username } = req.body;
+  const encryptedpassword = req.body.password;
+  const password = encryptedpassword;
+  const encryptedAdmin = {
+    username,
+    password,
+  };
+  const newAdmin = new Admin(encryptedAdmin);
+  try {
     const adminId = req.url.toString().split("/");
-    const updatedAdmin = await Admin.findByIdAndUpdate(
-      adminId[2],
-      newAdmin
-    );
+    const updatedAdmin = await Admin.findByIdAndUpdate(adminId[2], newAdmin);
     res.json(updatedAdmin);
   } catch (error) {
     next(error);
@@ -73,31 +61,41 @@ const updateAdminById = async (req, res, next) => {
 };
 
 const verifyAdmin = async (req, res, next) => {
-  const admin = new Admin({
-    username: req.body.username,
-    password: req.body.password,
-    hint: req.body.hint
-  });
-  req.login(admin, function(err){
-    if(err){
-      console.log(err);
-    } else {
-      passport.authenticate("local")(req, res, function(){
-        res.status(200).json({message: "Admin verified"});
-      });
-    }
-  });
+  const { username, password } = req.body;
 
-}
+  try {
+    Admin.authenticate()(username, password, (err, user, options) => {
+      if (err) {
+        return res.status(500).json({ message: "Error verifying Admin" });
+      }
+      if (!user) {
+        return res.status(401).json({ message: "Admin not found" });
+      }
 
+      const token = jwt.sign(
+        { id: user._id, type: "admin" },
+        "FUTUREfocalsADMIN",
+        {
+          expiresIn: "7d",
+        }
+      );
+      return res.status(200).json({ message: "Admin verified", token: token });
+    });
+  } catch {
+    return res.status(500).json({ message: "Error verifying Admin" });
+  }
 
+};
 
-
+const adminLogout = async (req, res) => {
+  res.status(200).json({ message: "Admin logged out" });
+};
 
 module.exports = {
   getAllAdmins,
   addNewAdmin,
   deleteAdmin,
   updateAdminById,
-  verifyAdmin
+  verifyAdmin,
+  adminLogout,
 };
