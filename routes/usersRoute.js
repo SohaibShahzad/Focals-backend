@@ -3,16 +3,18 @@ const router = express.Router();
 const passport = require("passport");
 const {
   getAllUsers,
-  addNewUser,
+  verifyOTPandRegister,
   userLogout,
   verifyUser,
   deleteUser,
+  otpEmail,
 } = require("../controller/usersController");
 
 router.get("/getAllUsers", getAllUsers);
-router.post("/addNewUser", addNewUser);
+router.post("/verifyOTPandRegister", verifyOTPandRegister);
 router.delete("/deleteUser/:id", deleteUser);
 router.delete("/userLogout", userLogout);
 router.post("/verifyUser", verifyUser);
+router.post("/otpEmail", otpEmail);
 
 module.exports = router;

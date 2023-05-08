@@ -15,6 +15,7 @@ const adminsRoute = require("./routes/adminsRoute");
 const contactRoute = require("./routes/contactRoute");
 const usersRoute = require("./routes/usersRoute");
 const sessionRoute = require("./routes/sessionRoute");
+const testimonialsRoute = require("./routes/testimonialsRoute");
 
 const app = express();
 const mulParse = multer();
@@ -29,24 +30,12 @@ app.use(
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(mulParse.none());
-// app.use(
-//   session({
-//     secret: "FutureFocals",
-//     resave: false,
-//     saveUninitialized: false,
-//     cookie: {
-//       secure: false,
-//       maxAge: 1000 * 60 * 60 * 24 * 7,
-//       sameSite: "lax",
-//     },
-//   })
-// );
+
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
 app.use(passport.initialize());
-// app.use(passport.session());
 
 // Connect to MongoDB
 connectDB();
@@ -80,6 +69,7 @@ app.use("/admins", adminsRoute);
 app.use("/contact", contactRoute);
 app.use("/users", usersRoute);
 app.use("/session", sessionRoute);
+app.use("/testimonials", testimonialsRoute);
 
 // Start the server
 const PORT = process.env.PORT || 5000;
