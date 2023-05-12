@@ -1,18 +1,17 @@
 const express = require("express");
 const {
   getAllServices,
-  getAllServiceIds,
-  getServiceById,
-  addNewService,
+  getServiceDataAndImages,
+  addNewServiceWithImages,
   deleteService,
-  updateServiceById
+  updateServiceById,
+  parser,
 } = require("../controller/servicesController");
 const router = express.Router();
 
 router.get("/getAllServices", getAllServices);
-router.get("/getAllServiceIds", getAllServiceIds);
-router.get("/getServiceById/:id", getServiceById);
-router.post("/addNewService", addNewService);
+router.get("/getServiceDataAndImages/:id", getServiceDataAndImages);
+router.post("/addNewServiceWithImages", parser.fields([{ name: "thumbnail", maxCount: 1 }, { name: "images", maxCount: 10 }]), addNewServiceWithImages);
 router.delete("/deleteService/:id", deleteService);
 router.put("/updateServiceById/:id", updateServiceById);
 

@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const {
-    sendEmail,
-    getContactData,
-    updateContactData,
-    deleteContactData,
-    addContactData,
+  sendEmail,
+  getContactData,
+  updateContactData,
+  deleteContactData,
+  addContactData,
 } = require("../controller/contactController");
 
 router.post("/sendEmail", sendEmail);

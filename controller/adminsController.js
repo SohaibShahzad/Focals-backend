@@ -12,7 +12,6 @@ const getAllAdmins = async (req, res, next) => {
 };
 
 const addNewAdmin = async (req, res, next) => {
-  const encryptedpassword = req.body.password;
   Admin.register(
     { username: req.body.username, hint: req.body.hint },
     req.body.password,
@@ -43,18 +42,31 @@ const deleteAdmin = async (req, res, next) => {
 };
 
 const updateAdminById = async (req, res, next) => {
-  const { username } = req.body;
-  const encryptedpassword = req.body.password;
-  const password = encryptedpassword;
-  const encryptedAdmin = {
-    username,
-    password,
-  };
-  const newAdmin = new Admin(encryptedAdmin);
+  const { username, hint, password } = req.body;
+  const adminId = req.url.toString().split("/");
+
   try {
-    const adminId = req.url.toString().split("/");
-    const updatedAdmin = await Admin.findByIdAndUpdate(adminId[2], newAdmin);
-    res.json(updatedAdmin);
+    const admin = await Admin.findById(adminId[2]);
+    if (!admin) {
+      throw new Error("Admin not found");
+    }
+
+    admin.username = username;
+    admin.hint = hint;
+
+    admin.setPassword(password, function(err) {
+      if (err) {
+        next(err);
+      } else {
+        admin.save()
+          .then(updatedAdmin => {
+            res.json(updatedAdmin);
+          })
+          .catch(err => {
+            next(err);
+          });
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -84,7 +96,6 @@ const verifyAdmin = async (req, res, next) => {
   } catch {
     return res.status(500).json({ message: "Error verifying Admin" });
   }
-
 };
 
 const adminLogout = async (req, res) => {

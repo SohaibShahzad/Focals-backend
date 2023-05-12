@@ -1,5 +1,6 @@
 const express = require("express");
 const connectDB = require("./utils/db");
+const cloudinary = require("./utils/cloudinaryConfig");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const multer = require("multer");
@@ -19,7 +20,7 @@ const testimonialsRoute = require("./routes/testimonialsRoute");
 
 const app = express();
 const mulParse = multer();
-const upload = multer({ dest: "public/uploads/" });
+const parseData = mulParse.none();
 
 app.use(
   cors({
@@ -29,7 +30,7 @@ app.use(
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(mulParse.none());
+// app.use(mulParse.none());
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -60,16 +61,27 @@ passport.deserializeUser((obj, done) => {
   }
 });
 
-
 // Setup routes
+app.get("/api/youtube-proxy", async (req, res) => {
+  try {
+    const youtubeApiUrl = "https://www.youtube.com/iframe_api";
+    const response = await axios.get(youtubeApiUrl);
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", "text/javascript");
+    res.send(response.data);
+  } catch (error) {
+    res.status(500).send("Error proxying YouTube API request");
+  }
+});
+
 app.use("/services", servicesRoute);
 app.use("/blogs", blogsRoute);
-app.use("/portfolio", portfolioRoute);
-app.use("/admins", adminsRoute);
-app.use("/contact", contactRoute);
-app.use("/users", usersRoute);
-app.use("/session", sessionRoute);
-app.use("/testimonials", testimonialsRoute);
+app.use("/portfolio", parseData, portfolioRoute);
+app.use("/admins", parseData, adminsRoute);
+app.use("/contact", parseData, contactRoute);
+app.use("/users", parseData, usersRoute);
+app.use("/session", parseData, sessionRoute);
+app.use("/testimonials", parseData, testimonialsRoute);
 
 // Start the server
 const PORT = process.env.PORT || 5000;

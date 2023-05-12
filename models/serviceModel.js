@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 
-
 const packageSchema = new mongoose.Schema({
   name: { type: String, required: true },
   price: { type: Number, required: true },
@@ -10,7 +9,8 @@ const packageSchema = new mongoose.Schema({
 
 const serviceSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  image: { type: String, required: false },
+  thumbnail: { type: String, required: false },
+  images: [{ type: String, required: false }],
   description: { type: String, required: true },
   packages: [packageSchema],
 });
