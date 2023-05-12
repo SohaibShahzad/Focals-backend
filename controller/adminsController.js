@@ -11,6 +11,16 @@ const getAllAdmins = async (req, res, next) => {
   }
 };
 
+const getAdminbyId = async (req, res, next) => {
+  try {
+    const adminId = req.params.id;
+    const admin = await Admin.findById(adminId);
+    res.json(admin);
+  } catch (error) {
+    next(error);
+  }
+}
+
 const addNewAdmin = async (req, res, next) => {
   Admin.register(
     { username: req.body.username, hint: req.body.hint },
@@ -104,6 +114,7 @@ const adminLogout = async (req, res) => {
 
 module.exports = {
   getAllAdmins,
+  getAdminbyId,
   addNewAdmin,
   deleteAdmin,
   updateAdminById,
