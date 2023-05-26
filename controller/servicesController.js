@@ -31,6 +31,16 @@ const storage = new CloudinaryStorage({
 
 const parser = multer({ storage: storage });
 
+const getAllServicesWithoutImages = async (req, res, next) => {
+  try {
+    const services = await Service.find({});
+    res.json(services);
+  } catch (error) {
+    res.status(500).json({ message: `service stuck here` });
+    next(error);
+  }
+};
+
 const getAllServices = async (req, res, next) => {
   try {
     const services = await Service.find({});
@@ -206,7 +216,7 @@ const updateServiceById = async (req, res, next) => {
       }
       thumbnail = req.files.thumbnail[0].filename;
     }
-    
+
     let deletePromises = [];
 
     let images = serviceToUpdate.images;
@@ -248,6 +258,7 @@ const updateServiceById = async (req, res, next) => {
 
 module.exports = {
   getAllServices,
+  getAllServicesWithoutImages,
   getServiceDataAndImages,
   addNewServiceWithImages,
   deleteService,
