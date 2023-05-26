@@ -1,11 +1,9 @@
 const mongoose = require("mongoose");
 const passportLocalMongoose = require("passport-local-mongoose");
 
-
-const adminSchema = new mongoose.Schema({
+const subAdminSchema = new mongoose.Schema({
   username: {
     type: String,
-    unique: true,
   },
   password: {
     type: String,
@@ -15,14 +13,11 @@ const adminSchema = new mongoose.Schema({
   },
   permissions: {
     type: [String],
-    default: ["all"],
-    immutable: true,
   }
-
 });
 
-adminSchema.plugin(passportLocalMongoose);
+subAdminSchema.plugin(passportLocalMongoose);
 
-const Admin = mongoose.model("Admin", adminSchema);
+const SubAdmin = mongoose.model("SubAdmin", subAdminSchema);
 
-module.exports = Admin;
+module.exports = SubAdmin;

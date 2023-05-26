@@ -1,4 +1,5 @@
 const User = require("../models/usersModel");
+const UserProjects = require("../models/projectsModel");
 const passport = require("passport");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
@@ -56,6 +57,12 @@ const verifyOTPandRegister = async (req, res, next) => {
       }
       user.isVerified = true;
       await user.save();
+
+      await UserProjects.updateMany(
+        { email: username },
+        { $set: { user: user._id } }
+      );
+
       passport.authenticate("user")(req, res, function () {
         res.status(200).json({ message: "User created" });
       });
@@ -78,9 +85,7 @@ const verifyUser = async (req, res, next) => {
         return res.status(500).json({ message: "Error verifying User" });
       }
       if (!user) {
-        return res
-          .status(401)
-          .json({ message: "No Match!" });
+        return res.status(401).json({ message: "No Match!" });
       }
       if (!user.isVerified) {
         return res.status(401).json({ message: "User not verified" });

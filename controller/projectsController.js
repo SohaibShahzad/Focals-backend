@@ -1,4 +1,5 @@
 const UserProjects = require("../models/projectsModel");
+const User = require("../models/usersModel"); // <-- Add this
 
 const getAllProjects = async (req, res, next) => {
   try {
@@ -11,9 +12,15 @@ const getAllProjects = async (req, res, next) => {
 
 const getProjectsByUser = async (req, res, next) => {
   try {
-    const userId = req.url.toString().split("/");
-    const projects = await UserProjects.find({ user: userId[2] });
-    res.json(projects);
+    const userId = req.params.id;
+    const projects = await UserProjects.findOne({ user: userId });
+    if (projects) {
+      // If a projects document was found, return it
+      res.status(200).json(projects);
+    } else {
+      // If no projects document was found, return an error message
+      res.status(404).json({ message: "No projects found for this user" });
+    }
   } catch (error) {
     next(error);
   }
@@ -21,34 +28,54 @@ const getProjectsByUser = async (req, res, next) => {
 
 const addNewProject = async (req, res, next) => {
   try {
-    const userId = req.url.toString().split("/");
     const {
+      email,
       projectName,
-      description,
-      startDate,
-      endDate,
-      status,
-      progress,
-      price,
+      // description,
+      // startDate,
+      // endDate,
+      // status,
+      // progress,
+      // price,
     } = req.body;
 
     const newProject = {
       projectName,
-      description,
-      startDate,
-      endDate,
-      status,
-      progress,
-      price,
+      description: "",
+      startDate: null, // set startDate as null
+      endDate: null, // set endDate as null
+      status: "Scheduled",
+      progress: 0,
+      price: 0,
+      meetingStatus: "Scheduled",
     };
 
-    const updatedUserProjects = await UserProjects.findByIdAndUpdate(
-      userId[2],
-      { $push: { ongoingProjects: newProject } },
-      { new: true, upsert: true }
-    );
+    // Find the user by email
+    const user = await User.findOne({ username: email }); // Assuming username is the email
+    if (user) {
+      console.log("User found: ", user);
+    } else {
+      console.log("User not found");
+    }
+    // Find the user's projects by email
+    let userProjects = await UserProjects.findOne({ email: email });
 
-    res.status(201).json(updatedUserProjects);
+    if (!userProjects) {
+      // If no projects are found for this user, create a new document
+      // Include the user's id if the user exists
+      userProjects = new UserProjects({
+        email: email,
+        user: user ? user._id : null,
+      });
+    }
+
+    // Add the new project to the ongoingProjects array
+    userProjects.ongoingProjects.push(newProject);
+
+    // Save the updated document
+    await userProjects.save();
+
+    res.status(201).json(userProjects);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error" });

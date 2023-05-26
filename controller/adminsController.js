@@ -95,7 +95,7 @@ const verifyAdmin = async (req, res, next) => {
       }
 
       const token = jwt.sign(
-        { id: user._id, type: "admin" },
+        { id: user._id, type: "admin", role: user.permissions },
         "FUTUREfocalsADMIN",
         {
           expiresIn: "7d",

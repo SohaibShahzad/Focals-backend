@@ -62,25 +62,6 @@ const getAllBlogs = async (req, res, next) => {
   }
 };
 
-const getAllBlogIds = async (req, res, next) => {
-  try {
-    const blogIds = await Blog.find({}, { _id: 1 });
-    res.json(blogIds);
-  } catch (error) {
-    next(error);
-  }
-};
-
-const getBlogById = async (req, res, next) => {
-  try {
-    const blogid = req.url.toString().split("/");
-    const blogById = await Blog.findById(blogid[2]);
-    res.json(blogById);
-  } catch (error) {
-    next(error);
-  }
-};
-
 const getBlogWithImage = async (req, res, next) => {
   try {
     const blogId = req.params.id;
@@ -103,7 +84,31 @@ const getBlogWithImage = async (req, res, next) => {
   }
 };
 
+
 const deleteBlog = async (req, res, next) => {
+  try {
+    const blogId = req.params.id;
+    const blog = await Blog.findById(blogId);
+
+    if (!blog) {
+      return res.status(404).json({ message: 'Blog not found' });
+    }
+
+    // Delete the image from Cloudinary using destroy function
+    await cloudinary.uploader.destroy(blog.image);
+
+    // Delete the blog from MongoDB
+    const deletedBlog = await Blog.findByIdAndDelete(blogId);
+
+    res.json(deletedBlog);
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
+const deleteBlogsss = async (req, res, next) => {
   try {
     const blogid = req.url.toString().split("/");
     const deletedBlog = await Blog.findByIdAndDelete(blogid[2]);
@@ -138,37 +143,52 @@ const getSpecialBlog = async (req, res, next) => {
     );
 
     res.json(blogsWithImages);
-
   } catch (error) {
     next(error);
   }
 };
 
 const updateBlogById = async (req, res, next) => {
-  const { title, content, author, image, blogTags, isSpecial } = req.body;
-  const formattedDate = new Date(req.body.date);
-  const date = formattedDate.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-
-  // const image = blogImage;
-  const parsedTags = JSON.parse(blogTags);
-  const tags = parsedTags.map((element) => {
-    return element.replaceAll(" ", "");
-  });
-  const parsedBlog = {
-    title,
-    content,
-    author,
-    date,
-    image,
-    isSpecial,
-  };
   try {
-    const blogid = req.url.toString().split("/");
-    const updatedBlog = await Blog.findByIdAndUpdate(blogid[2], parsedBlog);
+    const blogId = req.params.id;
+    const blog = await Blog.findById(blogId);
+    if (!blog) {
+      res.status(404).json({ message: "Blog not found" });
+    }
+    const { title, content, author, blogTags, isSpecial } = req.body;
+    const formattedDate = new Date(req.body.date);
+    const date = formattedDate.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    let tags;
+    if (blogTags) {
+      const parsedTags = JSON.parse(blogTags);
+      tags = parsedTags.map((element) => {
+        return element.replaceAll(" ", "");
+      });
+    }
+
+    let image = blog.image;
+    if (req.file) {
+      if (req.file.filename !== blog.image) {
+        await cloudinary.uploader.destroy(blog.image);
+      }
+
+      image = req.file.filename;
+    }
+
+    const updatedBlogData = {
+      title,
+      content,
+      author,
+      date,
+      image,
+      isSpecial,
+    };
+    const updatedBlog = await Blog.findByIdAndUpdate(blogId, updatedBlogData);
     res.json(updatedBlog);
   } catch (error) {
     next(error);
@@ -207,43 +227,10 @@ const addNewBlogWithImage = async (req, res, next) => {
   }
 };
 
-const addNewBlog = async (req, res, next) => {
-  const { title, content, author, image, blogTags, isSpecial } = req.body;
-  const formattedDate = new Date(req.body.date);
-  const date = formattedDate.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-  const parsedTags = JSON.parse(blogTags);
-  const tags = parsedTags.map((element) => {
-    return element.replaceAll(" ", "");
-  });
-
-  const parsedBlog = {
-    title,
-    content,
-    author,
-    date,
-    image,
-    isSpecial,
-  };
-  const newBlog = new Blog(parsedBlog);
-  try {
-    const savedBlog = await newBlog.save();
-    res.status(200).json({ message: `Blog Saved and the obj is ${savedBlog}` });
-  } catch (error) {
-    next(error);
-  }
-};
-
 module.exports = {
   getAllBlogs,
-  getAllBlogIds,
-  getBlogById,
   getSpecialBlog,
   getBlogWithImage,
-  addNewBlog,
   addNewBlogWithImage,
   deleteBlog,
   updateBlogById,

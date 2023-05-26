@@ -1,11 +1,14 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+
+const mulParse = multer();
+const parseData = mulParse.none();
+
+
 const {
   getAllBlogs,
-  getAllBlogIds,
-  getBlogById,
   getBlogWithImage,
-  addNewBlog,
   addNewBlogWithImage,
   getSpecialBlog,
   deleteBlog,
@@ -14,13 +17,10 @@ const {
 } = require("../controller/blogsController");
 
 router.get("/getAllBlogs", getAllBlogs);
-router.get("/getAllBlogIds", getAllBlogIds);
 router.get("/getSpecialBlog", getSpecialBlog);
-router.get("/getBlogById/:id", getBlogById);
 router.get("/getBlogWithImage/:id", getBlogWithImage);
-router.post("/addNewBlog", addNewBlog);
 router.post("/addNewBlogWithImage", parser.single("image"), addNewBlogWithImage);
 router.delete("/deleteBlog/:id", deleteBlog);
-router.put("/updateBlogById/:id", updateBlogById);
+router.put("/updateBlogById/:id", parser.single("image"), updateBlogById);
 
 module.exports = router;

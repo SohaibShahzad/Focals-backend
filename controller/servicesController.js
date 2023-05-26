@@ -62,13 +62,15 @@ const getAllServices = async (req, res, next) => {
             })
           );
 
-          const validImagesData = fetchedImages.filter(imageUrl => imageUrl !== null);
+          const validImagesData = fetchedImages.filter(
+            (imageUrl) => imageUrl !== null
+          );
 
           // Return the service data with the fetched thumbnail URL
           return {
             ...service._doc,
             thumbnail: thumbnailData.secure_url,
-            images: validImagesData.map(imageData => imageData.secure_url)
+            images: validImagesData.map((imageData) => imageData.secure_url),
           };
         } catch (error) {
           console.error(
@@ -83,25 +85,6 @@ const getAllServices = async (req, res, next) => {
     res.json(servicesWithThumbnails);
   } catch (error) {
     res.status(500).json({ message: `service stuck here` });
-    next(error);
-  }
-};
-
-const getAllServiceIds = async (req, res, next) => {
-  try {
-    const servicesIds = await Service.find({}, { _id: 1 });
-    res.json(servicesIds);
-  } catch (error) {
-    next(error);
-  }
-};
-
-const getServiceById = async (req, res, next) => {
-  try {
-    const serviceid = req.url.toString().split("/");
-    const serviceById = await Service.findById(serviceid[2]);
-    res.json(serviceById);
-  } catch (error) {
     next(error);
   }
 };
@@ -148,7 +131,6 @@ const getServiceDataAndImages = async (req, res, next) => {
   }
 };
 
-
 const addNewServiceWithImages = async (req, res, next) => {
   const { title, description, newPackages } = req.body;
   const packages = JSON.parse(newPackages);
@@ -165,25 +147,6 @@ const addNewServiceWithImages = async (req, res, next) => {
     thumbnail: thumbnailImage.filename,
   };
 
-  const newService = new Service(parsedService);
-  try {
-    const savedService = await newService.save();
-    res.status(200).json({ message: `Service is Successfully Saved!!` });
-  } catch (error) {
-    next(error);
-  }
-};
-
-const addNewService = async (req, res, next) => {
-  const { title, description, newPackages, images } = req.body;
-  const packages = JSON.parse(newPackages);
-  const imagesArray = JSON.parse(images);
-  const parsedService = {
-    title,
-    description,
-    packages,
-    images: imagesArray,
-  };
   const newService = new Service(parsedService);
   try {
     const savedService = await newService.save();
@@ -210,7 +173,9 @@ const deleteService = async (req, res, next) => {
 
     // Delete the service's thumbnail from Cloudinary
     if (serviceToDelete.thumbnail) {
-      deletePromises.push(cloudinary.uploader.destroy(serviceToDelete.thumbnail));
+      deletePromises.push(
+        cloudinary.uploader.destroy(serviceToDelete.thumbnail)
+      );
     }
 
     await Promise.all(deletePromises);
@@ -224,47 +189,68 @@ const deleteService = async (req, res, next) => {
 };
 
 const updateServiceById = async (req, res, next) => {
-  const { title, description, newPackages } = req.body;
-  const packages = JSON.parse(newPackages);
-  const newPackage = {
-    title,
-    description,
-    packages,
-  };
   try {
-    const serviceid = req.url.toString().split("/");
+    const serviceId = req.params.id;
+    const serviceToUpdate = await Service.findById(serviceId);
+    if (!serviceToUpdate) {
+      return res.status(404).json({ message: "Service not found" });
+    }
+
+    const { title, description, newPackages } = req.body;
+    const packages = JSON.parse(newPackages);
+
+    let thumbnail = serviceToUpdate.thumbnail;
+    if (req.files.thumbnail) {
+      if (req.files.thumbnail[0].filename !== serviceToUpdate.thumbnail) {
+        await cloudinary.uploader.destroy(serviceToUpdate.thumbnail);
+      }
+      thumbnail = req.files.thumbnail[0].filename;
+    }
+    
+    let deletePromises = [];
+
+    let images = serviceToUpdate.images;
+    console.log(JSON.stringify(req.files.images.map((file) => file.filename)));
+    if (req.files.images) {
+      if (
+        JSON.stringify(req.files.images.map((file) => file.filename)) !==
+        JSON.stringify(serviceToUpdate.images)
+      ) {
+        deletePromises.push(
+          serviceToUpdate.images.map((publicId) =>
+            cloudinary.uploader.destroy(publicId)
+          )
+        );
+      }
+      images = req.files.images.map((file) => file.filename);
+    }
+
+    await Promise.all(deletePromises);
+
+    const updateData = {
+      title,
+      description,
+      packages,
+      images,
+      thumbnail,
+    };
+
     const updatedService = await Service.findByIdAndUpdate(
-      serviceid[2],
-      newPackage
+      serviceId,
+      updateData
     );
+
     res.json(updatedService);
   } catch (error) {
     next(error);
   }
 };
 
-const uploadServiceImage = async (req, res, next) => {
-  try {
-    const result = await cloudinary.uploader.upload(req.file.path);
-    res.status(200).json({
-      imageUrl: result.secure_url,
-      public_id: result.public_id,
-    });
-  } catch (error) {
-    res.status(500).json({ message: `Error uploading image` });
-    next(error);
-  }
-};
-
 module.exports = {
   getAllServices,
-  getAllServiceIds,
-  getServiceById,
   getServiceDataAndImages,
-  addNewService,
   addNewServiceWithImages,
   deleteService,
   updateServiceById,
-  uploadServiceImage,
   parser,
 };

@@ -1,13 +1,12 @@
 const mongoose = require("mongoose");
-
 const projectSchema = new mongoose.Schema({
   projectName: {
     type: String,
     required: true,
   },
-  description: {
-    type: String,
-  },
+  // description: {
+  //   type: String,
+  // },
   startDate: {
     type: Date,
   },
@@ -16,8 +15,8 @@ const projectSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["ongoing", "completed"],
-    default: "ongoing",
+    enum: ["Scheduled", "In Progress", "Revision", "Awaiting Approval", "Completed"],
+    default: "Scheduled",
   },
   progress: {
     type: Number,
@@ -27,10 +26,24 @@ const projectSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  // paymentStatus: {
+  //   type: String,
+  //   enum: ["not paid", "payment in progress", "paid"],
+  //   default: "not paid",
+  // },
+  meetingStatus: {
+    type: String,
+    enum: ["Not scheduled", "Scheduled"],
+    default: "Not scheduled",
+  },
 });
 
 const userProjectsSchema = new mongoose.Schema(
   {
+    email: {
+      type: String,
+      required: true,
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
