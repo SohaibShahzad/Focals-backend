@@ -1,5 +1,12 @@
 const mongoose = require("mongoose");
+const { v4: uuidv4 } = require('uuid');
+
 const projectSchema = new mongoose.Schema({
+  chatId: {
+    type: String,
+    default: uuidv4,
+    unique: true,
+  },
   projectName: {
     type: String,
     required: true,

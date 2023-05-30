@@ -1,15 +1,16 @@
 const express = require("express");
 const connectDB = require("./utils/db");
-const cloudinary = require("./utils/cloudinaryConfig");
+const http = require("http");
+const socketIO = require("socket.io");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const multer = require("multer");
-const session = require("express-session");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const Admin = require("./models/adminModel");
 const SubAdmin = require("./models/subAdminModel");
 const User = require("./models/usersModel");
+const Message = require("./models/messageModel");
 const servicesRoute = require("./routes/servicesRoute");
 const blogsRoute = require("./routes/blogsRoute");
 const portfolioRoute = require("./routes/portfolioRoute");
@@ -35,7 +36,6 @@ app.use(
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-// app.use(mulParse.none());
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -100,6 +100,50 @@ app.use("/termsPolicy", parseData, termsAndPolicyRoute);
 
 // Start the server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = http.createServer(app);
+
+// const io = socketIO(server);
+const io = socketIO(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"],
+    allowedHeaders: ["my-custom-header"],
+    credentials: true,
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log("New client connected");
+
+  socket.on("join", async ({ chatId, user }) => {
+    socket.join(chatId);
+    console.log(`${user} joined ${chatId}`);
+
+    const messages = await Message.find({ chatId }).sort({ createdAt: 1 });
+    socket.emit("chatHistory", messages);
+  });
+
+  socket.on("chat", async ({ chatId, user, message }) => {
+    // Log the received message
+    console.log(
+      `Received message: ${message} from user: ${user} in chatId: ${chatId}`
+    );
+
+    const savedMessages = await Message.create({ chatId, user, message })
+
+    io.to(chatId).emit("chat", savedMessages);
+  });
+
+  socket.on("leave", ({ chatId, user }) => {
+    socket.leave(chatId);
+    console.log(`${user} left ${chatId}`);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected");
+  });
+});
+
+server.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
