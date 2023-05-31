@@ -125,15 +125,12 @@ const getServiceDataAndImages = async (req, res, next) => {
       })
     );
 
-    console.log("in here 2");
     const serviceDataWithImages = {
       ...service._doc,
       images: fetchedImages
         .filter((img) => img !== null)
         .map((img) => img.secure_url),
     };
-    console.log("in here 3");
-    console.log(serviceDataWithImages);
 
     res.json(serviceDataWithImages);
   } catch (error) {
@@ -207,6 +204,7 @@ const updateServiceById = async (req, res, next) => {
     }
 
     const { title, description, newPackages } = req.body;
+    console.log(title, description, newPackages);
     const packages = JSON.parse(newPackages);
 
     let thumbnail = serviceToUpdate.thumbnail;
@@ -220,7 +218,6 @@ const updateServiceById = async (req, res, next) => {
     let deletePromises = [];
 
     let images = serviceToUpdate.images;
-    console.log(JSON.stringify(req.files.images.map((file) => file.filename)));
     if (req.files.images) {
       if (
         JSON.stringify(req.files.images.map((file) => file.filename)) !==
@@ -245,12 +242,9 @@ const updateServiceById = async (req, res, next) => {
       thumbnail,
     };
 
-    const updatedService = await Service.findByIdAndUpdate(
-      serviceId,
-      updateData
-    );
+    await Service.findByIdAndUpdate(serviceId, updateData);
 
-    res.json(updatedService);
+    res.status(200).json({ message: `Service is Successfully Updated!!` });
   } catch (error) {
     next(error);
   }

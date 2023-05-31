@@ -26,6 +26,18 @@ const getProjectsByUser = async (req, res, next) => {
   }
 };
 
+const getOngoingProjectsCountByUser = async (req, res, next) => {
+  try {
+    const userId = req.params.id;
+    const userProjects = await UserProjects.findOne({ user: userId });
+    const ongoingCount = userProjects ? userProjects.ongoingProjects.length : 0;
+    const completedCount = userProjects ? userProjects.projectHistory.length : 0;
+    res.status(200).json({ ongoingProjectsCount: ongoingCount, completedProjectsCount: completedCount });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const addNewProject = async (req, res, next) => {
   try {
     const {
@@ -124,7 +136,7 @@ const updateProject = async (req, res, next) => {
       ...updateData,
     };
 
-    if (updatedProject.status === "completed") {
+    if (updatedProject.status === "Completed") {
       userProjects.projectHistory.push(updatedProject);
       userProjects.ongoingProjects.splice(projectIndex, 1);
     } else {
@@ -141,6 +153,7 @@ const updateProject = async (req, res, next) => {
 
 module.exports = {
   getAllProjects,
+  getOngoingProjectsCountByUser,
   getProjectsByUser,
   addNewProject,
   deleteProject,
