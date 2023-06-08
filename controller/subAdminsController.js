@@ -11,6 +11,15 @@ const getAllSubAdmins = async (req, res, next) => {
   }
 };
 
+const getTotalSubAdmins = async (req, res, next) => {
+  try {
+    const subAdmins = await SubAdmin.find({});
+    res.json(subAdmins.length);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getSubAdminbyId = async (req, res, next) => {
   try {
     const subAdminId = req.params.id;
@@ -95,7 +104,6 @@ const updateSubAdminById = async (req, res, next) => {
 };
 
 const verifySubAdmin = async (req, res, next) => {
-    console.log(req.body);
   const { username, password } = req.body;
   try {
     SubAdmin.authenticate()(username, password, (err, user, options) => {
@@ -111,7 +119,7 @@ const verifySubAdmin = async (req, res, next) => {
         "FUTUREfocalsADMIN",
         {
           expiresIn: "7d",
-        }
+        } 
       );
       return res.status(200).json({ message: "Sub-Admin verified", token });
     });
@@ -126,6 +134,7 @@ const subAdminLogout = async (req, res, next) => {
 
 module.exports = {
     getAllSubAdmins,
+    getTotalSubAdmins,
     getSubAdminbyId,
     getSubAdminByPermissions,
     addNewSubAdmin,

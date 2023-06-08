@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   getAllServices,
+  getAllServiceTitles,
   getAllServicesWithoutImages,
   getServiceDataAndImages,
   addNewServiceWithImages,
@@ -11,6 +12,7 @@ const {
 const router = express.Router();
 
 router.get("/getAllServices", getAllServices);
+router.get("/getAllServiceTitles", getAllServiceTitles);
 router.get("/getAllServicesWithoutImages", getAllServicesWithoutImages);
 router.get("/getServiceDataAndImages/:id", getServiceDataAndImages);
 router.post("/addNewServiceWithImages", parser.fields([{ name: "thumbnail", maxCount: 1 }, { name: "images", maxCount: 10 }]), addNewServiceWithImages);

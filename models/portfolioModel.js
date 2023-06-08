@@ -4,6 +4,9 @@ const portfolioSchema = new mongoose.Schema({
   title: {
     type: String,
   },
+  category: {
+    type: String,
+  },
   clientName: {
     type: String,
     required: false,

@@ -88,12 +88,13 @@ const getSpecialPortfolio = async (req, res, next) => {
 };
 
 const addNewPortfolio = async (req, res, next) => {
-  const { title, clientName, description, url, stars, isSpecial } = req.body;
+  const { title, clientName, description, url, stars, category, isSpecial } = req.body;
   const parsedUrl = JSON.parse(url);
   const images = req.files.map((file) => file.filename);
 
   const parsedPortfolio = {
     title,
+    category,
     clientName,
     description,
     url: parsedUrl,
@@ -159,7 +160,7 @@ const updatePortfolioById = async (req, res, next) => {
       return;
     }
 
-    const { title, clientName, description, url, stars, isSpecial } = req.body;
+    const { title, clientName, description, url, stars, category, isSpecial } = req.body;
     const parsedUrl = JSON.parse(url);
 
     const existingImagesPublicIds = (req.body.images || []).map(
@@ -182,6 +183,7 @@ const updatePortfolioById = async (req, res, next) => {
 
     const updatedPortfolio = {
       title,
+      category,
       clientName,
       description,
       url: parsedUrl,

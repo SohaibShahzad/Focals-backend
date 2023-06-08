@@ -41,6 +41,17 @@ const getAllServicesWithoutImages = async (req, res, next) => {
   }
 };
 
+const getAllServiceTitles = async (req, res, next) => {
+  try {
+    const services = await Service.find({});
+    const serviceTitles = services.map((service) => service.title);
+    res.json(serviceTitles);
+  } catch (error) {
+    res.status(500).json({ message: `service stuck here` });
+    next(error);
+  }
+};
+
 const getAllServices = async (req, res, next) => {
   try {
     const services = await Service.find({});
@@ -278,6 +289,7 @@ const updateServiceById = async (req, res, next) => {
 
 module.exports = {
   getAllServices,
+  getAllServiceTitles,
   getAllServicesWithoutImages,
   getServiceDataAndImages,
   addNewServiceWithImages,

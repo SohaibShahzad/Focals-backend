@@ -25,6 +25,15 @@ const getUserbyId = async (req, res, next) => {
   }
 };
 
+const getTotalUsersCount = async (req, res, next) => {
+  try {
+    const users = await User.find({});
+    res.status(200).json({ totalUsers: users.length });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const deleteUser = async (req, res, next) => {
   try {
     const userId = req.url.toString().split("/");
@@ -37,7 +46,6 @@ const deleteUser = async (req, res, next) => {
 
 const verifyOTPandRegister = async (req, res, next) => {
   const { username, password, otp } = req.body;
-  console.log(password, otp);
   try {
     const user = await User.findOne({ username });
 
@@ -257,6 +265,7 @@ const resetPassword = async (req, res, next) => {
 
 module.exports = {
   getAllUsers,
+  getTotalUsersCount,
   getUserbyId,
   verifyOTPandRegister,
   userLogout,

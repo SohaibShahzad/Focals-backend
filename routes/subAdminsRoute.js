@@ -4,6 +4,7 @@ const router = express.Router();
 const {
   getAllSubAdmins,
   getSubAdminbyId,
+  getTotalSubAdmins,
   getSubAdminByPermissions,
   addNewSubAdmin,
   deleteSubAdmin,
@@ -13,6 +14,7 @@ const {
 } = require("../controller/subAdminsController");
 
 router.get("/getAllSubAdmins", getAllSubAdmins);
+router.get("/getTotalSubAdmins", getTotalSubAdmins);
 router.get("/getSubAdminbyId/:id", getSubAdminbyId);
 router.get("/getSubAdminByPermissions/:permissions", getSubAdminByPermissions);
 router.post("/addNewSubAdmin", addNewSubAdmin);

@@ -26,6 +26,22 @@ const getProjectsByUser = async (req, res, next) => {
   }
 };
 
+const getTotalProjectsCount = async (req, res, next) => {
+  try{
+
+    const projects = await UserProjects.find({});
+    const totalOngoingProjects = projects.reduce((acc, project) => {
+      return acc + project.ongoingProjects.length;
+    }, 0);
+    const totalCompletedProjects = projects.reduce((acc, project) => {
+      return acc + project.projectHistory.length;
+    }, 0);
+    res.status(200).json({ totalOngoingProjects, totalCompletedProjects });
+  } catch (error) {
+    next(error);
+  }
+} 
+
 const getOngoingProjectsCountByUser = async (req, res, next) => {
   try {
     const userId = req.params.id;
@@ -33,6 +49,20 @@ const getOngoingProjectsCountByUser = async (req, res, next) => {
     const ongoingCount = userProjects ? userProjects.ongoingProjects.length : 0;
     const completedCount = userProjects ? userProjects.projectHistory.length : 0;
     res.status(200).json({ ongoingProjectsCount: ongoingCount, completedProjectsCount: completedCount });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getTotalRevenue = async (req, res, next) => {
+  try {
+    const projects = await UserProjects.find({});
+    const totalRevenue = projects.reduce((acc, project) => {
+      return acc + project.projectHistory.reduce((acc, project) => {
+        return acc + project.price;
+      }, 0);
+    }, 0);
+    res.status(200).json({ totalRevenue });
   } catch (error) {
     next(error);
   }
@@ -153,6 +183,7 @@ const updateProject = async (req, res, next) => {
 
 module.exports = {
   getAllProjects,
+  getTotalProjectsCount,
   getOngoingProjectsCountByUser,
   getProjectsByUser,
   addNewProject,
