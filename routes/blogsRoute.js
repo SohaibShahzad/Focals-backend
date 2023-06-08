@@ -1,10 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const multer = require("multer");
-
-const mulParse = multer();
-const parseData = mulParse.none();
-
 
 const {
   getAllBlogs,

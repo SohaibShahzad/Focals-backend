@@ -87,7 +87,7 @@ app.get("/api/youtube-proxy", async (req, res) => {
 
 app.use("/services", servicesRoute);
 app.use("/blogs", blogsRoute);
-app.use("/portfolio", parseData, portfolioRoute);
+app.use("/portfolio", portfolioRoute);
 app.use("/admins", parseData, adminsRoute);
 app.use("/subAdmins", parseData, subAdminsRoute);
 app.use("/contact", parseData, contactRoute);
@@ -123,13 +123,18 @@ io.on("connection", (socket) => {
     socket.emit("chatHistory", messages);
   });
 
+  socket.on("requestChatHistory", async ({ chatId }) => {
+    const messages = await Message.find({ chatId }).sort({ createdAt: 1 });
+    socket.emit("chatHistory", messages);
+  });
+
   socket.on("chat", async ({ chatId, user, message }) => {
     // Log the received message
     console.log(
       `Received message: ${message} from user: ${user} in chatId: ${chatId}`
     );
 
-    const savedMessages = await Message.create({ chatId, user, message })
+    const savedMessages = await Message.create({ chatId, user, message });
 
     io.to(chatId).emit("chat", savedMessages);
   });

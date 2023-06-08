@@ -3,11 +3,22 @@ const mongoose = require("mongoose");
 const portfolioSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: true,
+  },
+  clientName: {
+    type: String,
+    required: false,
+  },
+  description: {
+    type: String,
   },
   url: {
-    type: String,
-    required: true,
+    type: [String],
+  },
+  stars: {
+    type: Number,
+  },
+  images: {
+    type: [String],
   },
   isSpecial: {
     type: Boolean,

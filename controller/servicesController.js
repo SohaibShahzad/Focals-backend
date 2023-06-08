@@ -139,8 +139,9 @@ const getServiceDataAndImages = async (req, res, next) => {
 };
 
 const addNewServiceWithImages = async (req, res, next) => {
-  const { title, description, newPackages } = req.body;
+  const { title, description, url, newPackages } = req.body;
   const packages = JSON.parse(newPackages);
+  const parsedUrl = JSON.parse(url);
 
   const thumbnailImage =
     req.files.thumbnail.length > 0 ? req.files.thumbnail[0] : undefined;
@@ -151,6 +152,7 @@ const addNewServiceWithImages = async (req, res, next) => {
     description,
     packages,
     images,
+    url: parsedUrl,
     thumbnail: thumbnailImage.filename,
   };
 
@@ -195,6 +197,23 @@ const deleteService = async (req, res, next) => {
   }
 };
 
+const getPublicIdFromUrl = (url) => {
+  if (!url) return null;
+  let splitUrl = url.split("/");
+  // Remove the version part
+  splitUrl = splitUrl.filter((item) => !item.startsWith("v"));
+  // Remove the first 6 parts: ['', 'res.cloudinary.com', 'dgg6yikgk', 'image', 'upload']
+  splitUrl = splitUrl.slice(6);
+
+  // Remove file extension from the last part
+  let lastPart = splitUrl[splitUrl.length - 1];
+  splitUrl[splitUrl.length - 1] = lastPart.split(".")[0];
+
+  return splitUrl.join("/");
+};
+
+// After the map() call, filter out null values
+
 const updateServiceById = async (req, res, next) => {
   try {
     const serviceId = req.params.id;
@@ -203,9 +222,10 @@ const updateServiceById = async (req, res, next) => {
       return res.status(404).json({ message: "Service not found" });
     }
 
-    const { title, description, newPackages } = req.body;
+    const { title, description, url, newPackages } = req.body;
     console.log(title, description, newPackages);
     const packages = JSON.parse(newPackages);
+    const parsedUrl = JSON.parse(url);
 
     let thumbnail = serviceToUpdate.thumbnail;
     if (req.files.thumbnail) {
@@ -217,20 +237,25 @@ const updateServiceById = async (req, res, next) => {
 
     let deletePromises = [];
 
-    let images = serviceToUpdate.images;
+    // If req.body.images is not an array, make it an array
+    const imagesFromBody = Array.isArray(req.body.images)
+      ? req.body.images
+      : [req.body.images];
+    const existingImagesPublicIds = (imagesFromBody || [])
+      .map(getPublicIdFromUrl)
+      .filter((id) => id !== null);
+    const toDeletePublicIds = serviceToUpdate.images.filter(
+      (image) => !existingImagesPublicIds.includes(image)
+    );
+
+    let images = existingImagesPublicIds;
     if (req.files.images) {
-      if (
-        JSON.stringify(req.files.images.map((file) => file.filename)) !==
-        JSON.stringify(serviceToUpdate.images)
-      ) {
-        deletePromises.push(
-          serviceToUpdate.images.map((publicId) =>
-            cloudinary.uploader.destroy(publicId)
-          )
-        );
-      }
-      images = req.files.images.map((file) => file.filename);
+      images = [...images, ...req.files.images.map((file) => file.filename)];
     }
+
+    deletePromises.push(
+      toDeletePublicIds.map((publicId) => cloudinary.uploader.destroy(publicId))
+    );
 
     await Promise.all(deletePromises);
 
@@ -239,6 +264,7 @@ const updateServiceById = async (req, res, next) => {
       description,
       packages,
       images,
+      url: parsedUrl,
       thumbnail,
     };
 

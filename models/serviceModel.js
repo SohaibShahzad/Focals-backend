@@ -10,6 +10,7 @@ const packageSchema = new mongoose.Schema({
 const serviceSchema = new mongoose.Schema({
   title: { type: String, required: true },
   thumbnail: { type: String, required: false },
+  url: { type: [String], required: false },
   images: [{ type: String, required: false }],
   description: { type: String, required: true },
   packages: [packageSchema],
