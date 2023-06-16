@@ -62,6 +62,15 @@ const getAllBlogs = async (req, res, next) => {
   }
 };
 
+const getTotalBlogsCount = async (req, res, next) => {
+  try {
+    const totalBlogsCount = await Blog.countDocuments({});
+    res.json(totalBlogsCount);
+  } catch (error) {
+    next(error);
+  }
+}
+
 const getBlogWithImage = async (req, res, next) => {
   try {
     const blogId = req.params.id;
@@ -229,6 +238,7 @@ const addNewBlogWithImage = async (req, res, next) => {
 
 module.exports = {
   getAllBlogs,
+  getTotalBlogsCount,
   getSpecialBlog,
   getBlogWithImage,
   addNewBlogWithImage,

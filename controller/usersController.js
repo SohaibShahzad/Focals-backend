@@ -46,6 +46,7 @@ const deleteUser = async (req, res, next) => {
 
 const verifyOTPandRegister = async (req, res, next) => {
   const { username, password, otp } = req.body;
+  console.log(username, password, otp)
   try {
     const user = await User.findOne({ username });
 
@@ -99,7 +100,10 @@ const verifyUser = async (req, res, next) => {
         return res.status(401).json({ message: "User not verified" });
       }
 
-      const token = jwt.sign({ id: user._id, type: "user" }, "FUTUREfocals", {
+      // const foundUser = User.find({username: username})
+      // const name = foundUser[0].firstName + " " + foundUser[0].lastName
+
+      const token = jwt.sign({ id: user._id, type: "user", username }, "FUTUREfocals", {
         expiresIn: "7d",
       });
       return res.status(200).json({ message: "Verified!!", token: token });

@@ -52,6 +52,16 @@ const getAllServiceTitles = async (req, res, next) => {
   }
 };
 
+const getTotalServicesCount = async (req, res, next) => {
+  try {
+    const totalServices = await Service.countDocuments({});
+    res.json(totalServices);
+  } catch (error) {
+    res.status(500).json({ message: `service stuck here` });
+    next(error);
+  }
+}
+
 const getAllServices = async (req, res, next) => {
   try {
     const services = await Service.find({});
@@ -289,6 +299,7 @@ const updateServiceById = async (req, res, next) => {
 
 module.exports = {
   getAllServices,
+  getTotalServicesCount,
   getAllServiceTitles,
   getAllServicesWithoutImages,
   getServiceDataAndImages,

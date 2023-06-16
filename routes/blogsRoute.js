@@ -3,6 +3,7 @@ const router = express.Router();
 
 const {
   getAllBlogs,
+  getTotalBlogsCount,
   getBlogWithImage,
   addNewBlogWithImage,
   getSpecialBlog,
@@ -12,6 +13,7 @@ const {
 } = require("../controller/blogsController");
 
 router.get("/getAllBlogs", getAllBlogs);
+router.get("/getTotalBlogsCount", getTotalBlogsCount);
 router.get("/getSpecialBlog", getSpecialBlog);
 router.get("/getBlogWithImage/:id", getBlogWithImage);
 router.post("/addNewBlogWithImage", parser.single("image"), addNewBlogWithImage);
