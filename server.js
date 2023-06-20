@@ -105,7 +105,7 @@ const server = http.createServer(app);
 // const io = socketIO(server);
 const io = socketIO(server, {
   cors: {
-    origin: "*",
+    origin: "http://31.220.62.249:3000/",
     methods: ["GET", "POST"],
     allowedHeaders: ["my-custom-header"],
     credentials: true,
