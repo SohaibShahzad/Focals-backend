@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require("uuid");
 
 const projectSchema = new mongoose.Schema({
   chatId: {
@@ -22,7 +22,13 @@ const projectSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["Scheduled", "In Progress", "Revision", "Awaiting Approval", "Completed"],
+    enum: [
+      "Scheduled",
+      "In Progress",
+      "Revision",
+      "Awaiting Approval",
+      "Completed",
+    ],
     default: "Scheduled",
   },
   progress: {

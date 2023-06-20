@@ -1,5 +1,6 @@
 const UserProjects = require("../models/projectsModel");
 const User = require("../models/usersModel"); // <-- Add this
+const Message = require("../models/messageModel"); // <-- Add this
 
 const getAllProjects = async (req, res, next) => {
   try {
@@ -27,8 +28,7 @@ const getProjectsByUser = async (req, res, next) => {
 };
 
 const getTotalProjectsCount = async (req, res, next) => {
-  try{
-
+  try {
     const projects = await UserProjects.find({});
     const totalOngoingProjects = projects.reduce((acc, project) => {
       return acc + project.ongoingProjects.length;
@@ -40,15 +40,20 @@ const getTotalProjectsCount = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-} 
+};
 
 const getOngoingProjectsCountByUser = async (req, res, next) => {
   try {
     const userId = req.params.id;
     const userProjects = await UserProjects.findOne({ user: userId });
     const ongoingCount = userProjects ? userProjects.ongoingProjects.length : 0;
-    const completedCount = userProjects ? userProjects.projectHistory.length : 0;
-    res.status(200).json({ ongoingProjectsCount: ongoingCount, completedProjectsCount: completedCount });
+    const completedCount = userProjects
+      ? userProjects.projectHistory.length
+      : 0;
+    res.status(200).json({
+      ongoingProjectsCount: ongoingCount,
+      completedProjectsCount: completedCount,
+    });
   } catch (error) {
     next(error);
   }
@@ -58,9 +63,12 @@ const getTotalRevenue = async (req, res, next) => {
   try {
     const projects = await UserProjects.find({});
     const totalRevenue = projects.reduce((acc, project) => {
-      return acc + project.projectHistory.reduce((acc, project) => {
-        return acc + project.price;
-      }, 0);
+      return (
+        acc +
+        project.projectHistory.reduce((acc, project) => {
+          return acc + project.price;
+        }, 0)
+      );
     }, 0);
     res.status(200).json({ totalRevenue });
   } catch (error) {
@@ -143,9 +151,9 @@ const deleteProject = async (req, res, next) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
-
 const updateProject = async (req, res, next) => {
   const updateData = req.body;
+  console.log("updateData: ", updateData);
   try {
     const projectId = req.params.projectId;
     const userId = req.params.userId;
@@ -168,10 +176,10 @@ const updateProject = async (req, res, next) => {
 
     if (updatedProject.status === "Completed") {
       userProjects.projectHistory.push(updatedProject);
-      userProjects.ongoingProjects.splice(projectIndex, 1);
-    } else {
-      userProjects.ongoingProjects[projectIndex] = updatedProject;
+      userProjects.ongoingProjects.pull({ _id: updatedProject._id });
     }
+
+    console.log("updatedProject: ", userProjects);
 
     await userProjects.save();
     res.status(200).json(updatedProject);
