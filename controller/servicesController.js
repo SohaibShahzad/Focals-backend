@@ -60,7 +60,7 @@ const getTotalServicesCount = async (req, res, next) => {
     res.status(500).json({ message: `service stuck here` });
     next(error);
   }
-}
+};
 
 const getAllServices = async (req, res, next) => {
   try {
@@ -114,6 +114,22 @@ const getAllServices = async (req, res, next) => {
     );
 
     res.json(servicesWithThumbnails);
+  } catch (error) {
+    res.status(500).json({ message: `service stuck here` });
+    next(error);
+  }
+};
+
+const getServicesTitle = async (req, res, next) => {
+  try {
+    const services = await Service.find({});
+    const serviceTitles = services.map((service) => {
+      return {
+        id: service._id,
+        title: service.title,
+      };
+    });
+    res.json(serviceTitles);
   } catch (error) {
     res.status(500).json({ message: `service stuck here` });
     next(error);
@@ -306,5 +322,6 @@ module.exports = {
   addNewServiceWithImages,
   deleteService,
   updateServiceById,
+  getServicesTitle,
   parser,
 };
