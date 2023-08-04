@@ -8,11 +8,13 @@ const {
   addNewServiceWithImages,
   deleteService,
   updateServiceById,
+  getServicesTitle,
   parser,
 } = require("../controller/servicesController");
 const router = express.Router();
 
 router.get("/getAllServices", getAllServices);
+router.get("/getServicesTitle",getServicesTitle)
 router.get("/getTotalServicesCount", getTotalServicesCount);
 router.get("/getAllServiceTitles", getAllServiceTitles);
 router.get("/getAllServicesWithoutImages", getAllServicesWithoutImages);
