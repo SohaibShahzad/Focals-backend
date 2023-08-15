@@ -103,7 +103,7 @@ const verifyUser = async (req, res, next) => {
       // const name = foundUser[0].firstName + " " + foundUser[0].lastName
 
       const token = jwt.sign(
-        { id: user._id, type: "user", username },
+        { id: user._id, type: "user", username, firstName: user.firstName },
         "FUTUREfocals",
         {
           expiresIn: "7d",

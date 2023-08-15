@@ -176,7 +176,7 @@ const getServiceDataAndImages = async (req, res, next) => {
 };
 
 const addNewServiceWithImages = async (req, res, next) => {
-  const { title, description, url, newPackages } = req.body;
+  const { title, description, url, newPackages, category } = req.body;
   const packages = JSON.parse(newPackages);
   const parsedUrl = JSON.parse(url);
 
@@ -191,6 +191,7 @@ const addNewServiceWithImages = async (req, res, next) => {
     images,
     url: parsedUrl,
     thumbnail: thumbnailImage.filename,
+    category
   };
 
   const newService = new Service(parsedService);
@@ -259,8 +260,7 @@ const updateServiceById = async (req, res, next) => {
       return res.status(404).json({ message: "Service not found" });
     }
 
-    const { title, description, url, newPackages } = req.body;
-    console.log(title, description, newPackages);
+    const { title, description, url, newPackages, category } = req.body;
     const packages = JSON.parse(newPackages);
     const parsedUrl = JSON.parse(url);
 
@@ -303,6 +303,7 @@ const updateServiceById = async (req, res, next) => {
       images,
       url: parsedUrl,
       thumbnail,
+      category
     };
 
     await Service.findByIdAndUpdate(serviceId, updateData);

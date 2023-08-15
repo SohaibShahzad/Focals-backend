@@ -14,6 +14,7 @@ const serviceSchema = new mongoose.Schema({
   images: [{ type: String, required: false }],
   description: { type: String, required: true },
   packages: [packageSchema],
+  category: { type: String, required: false },
 });
 
 const Service = mongoose.model("Service", serviceSchema);
