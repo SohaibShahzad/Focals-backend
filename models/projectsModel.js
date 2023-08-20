@@ -39,11 +39,11 @@ const projectSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
-  // paymentStatus: {
-  //   type: String,
-  //   enum: ["not paid", "payment in progress", "paid"],
-  //   default: "not paid",
-  // },
+  paymentStatus: {
+    type: String,
+    // enum: ["Unpaid", "aid"],
+    default: "Unpaid",
+  },
   meetingStatus: {
     type: String,
     enum: ["Not scheduled", "Scheduled"],

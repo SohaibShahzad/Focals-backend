@@ -77,6 +77,7 @@ const getTotalRevenue = async (req, res, next) => {
 };
 
 const addNewProject = async (req, res, next) => {
+  console.log("req.body: ", req.body);
   try {
     const {
       email,
@@ -86,7 +87,7 @@ const addNewProject = async (req, res, next) => {
       // endDate,
       // status,
       // progress,
-      // price,
+      price,
     } = req.body;
 
     const newProject = {
@@ -96,7 +97,7 @@ const addNewProject = async (req, res, next) => {
       endDate: null, // set endDate as null
       status: "Scheduled",
       progress: 0,
-      price: 0,
+      price,
       meetingStatus: "Scheduled",
     };
 
