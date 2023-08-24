@@ -105,14 +105,17 @@ const server = http.createServer(app);
 // const io = socketIO(server);
 const io = socketIO(server, {
   cors: {
-    origin: "http://31.220.62.249:3000/",
+    origin: "http://31.220.62.249:3000",
+    // origin: "http://localhost:3000",
     methods: ["GET", "POST"],
     allowedHeaders: ["my-custom-header"],
     credentials: true,
   },
 });
 
-io.on("connection", (socket) => {
+const projectChatNS = io.of("/projectChats");
+
+projectChatNS.on("connection", (socket) => {
   console.log("New client connected");
 
   socket.on("join", async ({ chatId, user }) => {
@@ -136,7 +139,7 @@ io.on("connection", (socket) => {
 
     const savedMessages = await Message.create({ chatId, user, message });
 
-    io.to(chatId).emit("chat", savedMessages);
+    projectChatNS.to(chatId).emit("chat", savedMessages);
   });
 
   socket.on("leave", ({ chatId, user }) => {
