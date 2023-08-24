@@ -11,6 +11,7 @@ const Admin = require("./models/adminModel");
 const SubAdmin = require("./models/subAdminModel");
 const User = require("./models/usersModel");
 const Message = require("./models/messageModel");
+const UsersChat = require("./models/usersChatModel");
 const servicesRoute = require("./routes/servicesRoute");
 const blogsRoute = require("./routes/blogsRoute");
 const portfolioRoute = require("./routes/portfolioRoute");
@@ -102,7 +103,6 @@ app.use("/termsPolicy", parseData, termsAndPolicyRoute);
 const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
 
-// const io = socketIO(server);
 const io = socketIO(server, {
   cors: {
     origin: "http://31.220.62.249:3000",
@@ -114,6 +114,7 @@ const io = socketIO(server, {
 });
 
 const projectChatNS = io.of("/projectChats");
+const usersChatNS = io.of("/usersChats");
 
 projectChatNS.on("connection", (socket) => {
   console.log("New client connected");
@@ -145,6 +146,45 @@ projectChatNS.on("connection", (socket) => {
   socket.on("leave", ({ chatId, user }) => {
     socket.leave(chatId);
     console.log(`${user} left ${chatId}`);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected");
+  });
+});
+
+usersChatNS.on("connection", (socket) => {
+  console.log("Connected in UsersChat");
+
+  socket.on("join", async ({ chatId, sender, receiver }) => {
+    socket.join(chatId);
+    console.log(`${sender} joined ${chatId} with ${receiver}`);
+    const chat = await UsersChat.findOne({ chatId });
+    socket.emit("chatHistory", chat);
+  });
+
+  socket.on("requestChatHistory", async ({ chatId, sender, receiver }) => {
+    const messages = await UsersChat.findOne({ chatId });
+    socket.emit("chatHistory", messages);
+  });
+
+  socket.on("chat", async ({ chatId, messageData }) => {
+    console.log(`Received message: ${messageData.sender} in chatId: ${chatId}`);
+
+    let chat = await UsersChat.findOne({ chatId });
+
+    if (!chat) {
+      chat = await UsersChat.create({ chatId, messages: [] });
+    }
+
+    chat.messages.push(messageData);
+    await chat.save();
+    usersChatNS.to(chatId).emit("chat", chat);
+  });
+
+  socket.on("leave", ({ chatId }) => {
+    socket.leave(chatId);
+    console.log(`left ${chatId}`);
   });
 
   socket.on("disconnect", () => {
