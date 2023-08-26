@@ -1,6 +1,7 @@
 const UserProjects = require("../models/projectsModel");
 const User = require("../models/usersModel"); // <-- Add this
 const Message = require("../models/messageModel"); // <-- Add this
+const { v4: uuidv4 } = require("uuid");
 
 const getAllProjects = async (req, res, next) => {
   try {
@@ -91,12 +92,14 @@ const addNewProject = async (req, res, next) => {
     } = req.body;
 
     const newProject = {
+      chatId: uuidv4(), // <-- Add this
       projectName,
       description: "",
       startDate: null, // set startDate as null
       endDate: null, // set endDate as null
       status: "Scheduled",
       progress: 0,
+      paymentStatus: "Paid",
       price,
       meetingStatus: "Scheduled",
     };
@@ -111,22 +114,25 @@ const addNewProject = async (req, res, next) => {
     // Find the user's projects by email
     let userProjects = await UserProjects.findOne({ email: email });
 
-    if (!userProjects) {
-      // If no projects are found for this user, create a new document
-      // Include the user's id if the user exists
+    const exisitngUserProjects = await UserProjects.findOne({ user: user._id });
+
+    if (exisitngUserProjects) {
+      exisitngUserProjects.ongoingProjects.push(newProject);
+      await exisitngUserProjects.save();
+
+      res.status(201).json(exisitngUserProjects);
+    } else {
       userProjects = new UserProjects({
         email: email,
         user: user ? user._id : null,
+        userName: user ? user.firstName : null,
+        ongoingProjects: [newProject],
       });
+
+      await userProjects.save();
+
+      res.status(201).json(userProjects);
     }
-
-    // Add the new project to the ongoingProjects array
-    userProjects.ongoingProjects.push(newProject);
-
-    // Save the updated document
-    await userProjects.save();
-
-    res.status(201).json(userProjects);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error" });
@@ -154,35 +160,39 @@ const deleteProject = async (req, res, next) => {
 };
 const updateProject = async (req, res, next) => {
   const updateData = req.body;
-  console.log("updateData: ", updateData);
   try {
     const projectId = req.params.projectId;
     const userId = req.params.userId;
 
-    const userProjects = await UserProjects.findOne({ user: userId });
-
-    const projectIndex = userProjects.ongoingProjects.findIndex(
-      (project) => project._id.toString() === projectId
+    const updatedProject = await UserProjects.findOneAndUpdate(
+      { user: userId, "ongoingProjects._id": projectId },
+      {
+        $set: {
+          "ongoingProjects.$.startDate": updateData.startDate,
+          "ongoingProjects.$.endDate": updateData.endDate,
+          "ongoingProjects.$.status": updateData.status,
+          "ongoingProjects.$.progress": updateData.progress,
+        },
+      },
+      { new: true }
     );
 
-    if (projectIndex === -1) {
+    if (!updatedProject) {
       res.status(404).json({ message: "Project not found" });
       return;
     }
 
-    const updatedProject = {
-      ...userProjects.ongoingProjects[projectIndex]._doc,
-      ...updateData,
-    };
-
-    if (updatedProject.status === "Completed") {
-      userProjects.projectHistory.push(updatedProject);
-      userProjects.ongoingProjects.pull({ _id: updatedProject._id });
+    if (updateData.status === "Completed") {
+      const projectToMove = updatedProject.ongoingProjects.find(
+        (project) => project._id.toString() === projectId
+      );
+      updatedProject.ongoingProjects = updatedProject.ongoingProjects.filter(
+        (project) => project._id.toString() !== projectId
+      );
+      updatedProject.projectHistory.push(projectToMove);
     }
 
-    console.log("updatedProject: ", userProjects);
-
-    await userProjects.save();
+    await updatedProject.save();
     res.status(200).json(updatedProject);
   } catch (error) {
     console.error(error);

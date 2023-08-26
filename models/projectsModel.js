@@ -1,11 +1,9 @@
 const mongoose = require("mongoose");
-const { v4: uuidv4 } = require("uuid");
 
 const projectSchema = new mongoose.Schema({
   chatId: {
     type: String,
-    default: uuidv4,
-    unique: true,
+    index: { unique: false },
   },
   projectName: {
     type: String,
@@ -54,6 +52,10 @@ const projectSchema = new mongoose.Schema({
 const userProjectsSchema = new mongoose.Schema(
   {
     email: {
+      type: String,
+      required: true,
+    },
+    userName: {
       type: String,
       required: true,
     },
