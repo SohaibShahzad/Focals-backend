@@ -17,11 +17,9 @@ const getProjectsByUser = async (req, res, next) => {
     const userId = req.params.id;
     const projects = await UserProjects.findOne({ user: userId });
     if (projects) {
-      // If a projects document was found, return it
       res.status(200).json(projects);
     } else {
-      // If no projects document was found, return an error message
-      res.status(404).json({ message: "No projects found for this user" });
+      res.status(204).json({ message: "No projects found for this user" });
     }
   } catch (error) {
     next(error);
