@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   getAllServices,
+  getCategories,
   getTotalServicesCount,
   getAllServiceTitles,
   getAllServicesWithoutImages,
@@ -14,6 +15,7 @@ const {
 const router = express.Router();
 
 router.get("/getAllServices", getAllServices);
+router.get("/getCategories", getCategories);
 router.get("/getServicesTitle",getServicesTitle)
 router.get("/getTotalServicesCount", getTotalServicesCount);
 router.get("/getAllServiceTitles", getAllServiceTitles);
