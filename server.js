@@ -100,7 +100,7 @@ app.use("/socials", parseData, socialLinksRoute);
 app.use("/termsPolicy", parseData, termsAndPolicyRoute);
 
 // Start the server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5050;
 const server = http.createServer(app);
 
 const io = socketIO(server, {
