@@ -272,6 +272,54 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+const saveGoogleUser = async (req, res) => {
+  const { firstName, lastName, username, googleId } = req.body;
+
+  try {
+    // Check for existing user by username
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      console.log("User already exists");
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // Create new user object
+    const newUser = new User({
+      firstName,
+      lastName,
+      username,
+      googleId,
+      isVerified: true,
+    });
+
+    // Save new user to database
+    await newUser.save();
+
+    // Generate JWT token for user
+    const token = jwt.sign(
+      {
+        id: newUser.googleId,
+        type: "user",
+        username,
+        firstName: newUser.firstName,
+      },
+      "FUTUREfocals", // This should ideally come from an environment variable for better security
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    // Send success response with token and user data
+    res
+      .status(200)
+      .json({ message: "Verified!!", token: token });
+  } catch (error) {
+    // Log the error (you may also want to send it to an error tracking service)
+    console.error(error);
+    // Send error response
+    res.status(500).json({ message: "Error registering the user" });
+  }
+};
 module.exports = {
   getAllUsers,
   getTotalUsersCount,
@@ -284,4 +332,5 @@ module.exports = {
   resetPasswordRequest,
   verifyOTPforReset,
   resetPassword,
+  saveGoogleUser,
 };

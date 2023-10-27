@@ -1,3 +1,4 @@
+// require("dotenv").config();
 const express = require("express");
 const connectDB = require("./utils/db");
 const http = require("http");
@@ -7,6 +8,7 @@ const cors = require("cors");
 const multer = require("multer");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const Admin = require("./models/adminModel");
 const SubAdmin = require("./models/subAdminModel");
 const User = require("./models/usersModel");
@@ -31,6 +33,7 @@ const parseData = mulParse.none();
 
 app.use(
   cors({
+    origin: "http://localhost:3000",
     credentials: true,
   })
 );
@@ -72,6 +75,22 @@ passport.deserializeUser((obj, done) => {
   }
 });
 
+// passport.use(
+//   new GoogleStrategy(
+//     {
+//       clientID: process.env.GOOGLE_CLIENT_ID,
+//       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+//       callbackURL: `${process.env.SERVER_URL}auth/google/callback`,
+//       userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
+//     },
+//     function (accessToken, refreshToken, profile, done) {
+//       console.log("profile", profile);
+//       console.log("accessToken", accessToken);
+//       console.log("refreshToken", refreshToken);
+//     }
+//   )
+// );
+
 // Setup routes
 
 app.get("/api/youtube-proxy", async (req, res) => {
@@ -105,8 +124,8 @@ const server = http.createServer(app);
 
 const io = socketIO(server, {
   cors: {
-    origin: "http://31.220.62.249:3000",
-    // origin: "http://localhost:3000",
+    // origin: "http://31.220.62.249:3000",
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"],
     allowedHeaders: ["my-custom-header"],
     credentials: true,

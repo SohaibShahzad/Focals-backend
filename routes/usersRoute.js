@@ -12,6 +12,7 @@ const {
   resetPasswordRequest,
   verifyOTPforReset,
   resetPassword,
+  saveGoogleUser,
 } = require("../controller/usersController");
 
 router.get("/getAllUsers", getAllUsers);
@@ -25,5 +26,6 @@ router.post("/otpEmail", otpEmail);
 router.post("/resetPasswordRequest", resetPasswordRequest);
 router.post("/verifyOTPforReset", verifyOTPforReset);
 router.post("/resetPassword", resetPassword);
+router.post("/saveGoogleUser", saveGoogleUser);
 
 module.exports = router;

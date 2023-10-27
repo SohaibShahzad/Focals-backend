@@ -9,25 +9,11 @@ const projectSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  // description: {
-  //   type: String,
-  // },
   startDate: {
     type: Date,
   },
   endDate: {
     type: Date,
-  },
-  status: {
-    type: String,
-    enum: [
-      "Scheduled",
-      "In Progress",
-      "Revision",
-      "Awaiting Approval",
-      "Completed",
-    ],
-    default: "Scheduled",
   },
   progress: {
     type: Number,
@@ -39,8 +25,19 @@ const projectSchema = new mongoose.Schema({
   },
   paymentStatus: {
     type: String,
-    // enum: ["Unpaid", "aid"],
     default: "Unpaid",
+  },
+  status: {
+    type: String,
+    enum: [
+      "Scheduled",
+      "In Progress",
+      "Revision",
+      "Awaiting Approval",
+      "Completed",
+      "Cancelled"
+    ],
+    default: "Scheduled",
   },
   meetingStatus: {
     type: String,
@@ -63,8 +60,12 @@ const userProjectsSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    ongoingProjects: [projectSchema],
-    projectHistory: [projectSchema],
+    ongoingProjects: [projectSchema], // for "In Progress"
+    projectHistory: [projectSchema], // for "Completed"
+    scheduledProjects: [projectSchema],
+    revisionProjects: [projectSchema],
+    awaitingApprovalProjects: [projectSchema],
+    cancelledProjects: [projectSchema],
   },
   {
     timestamps: true,

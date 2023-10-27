@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const MONGODB_URI =
   process.env.MONGODB_URI || "mongodb+srv://Admin-Sohaib:futureDBfocals@futurefocalscluster0.xhujfx1.mongodb.net/futurefocalsDB";
   // process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/futurefocalsDB";
+  // process.env.MONGODB_URI || "mongodb://Admin-Sohaib:futureDBfocals@ac-mhnjsb5-shard-00-00.xhujfx1.mongodb.net:27017,ac-mhnjsb5-shard-00-01.xhujfx1.mongodb.net:27017,ac-mhnjsb5-shard-00-02.xhujfx1.mongodb.net:27017/futurefocalsDB?replicaSet=atlas-flro2s-shard-0&ssl=true&authSource=admin"
 
 // Connect to MongoDB
 async function connectDB () {

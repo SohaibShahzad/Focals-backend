@@ -29,13 +29,34 @@ const getProjectsByUser = async (req, res, next) => {
 const getTotalProjectsCount = async (req, res, next) => {
   try {
     const projects = await UserProjects.find({});
+
     const totalOngoingProjects = projects.reduce((acc, project) => {
       return acc + project.ongoingProjects.length;
     }, 0);
     const totalCompletedProjects = projects.reduce((acc, project) => {
       return acc + project.projectHistory.length;
     }, 0);
-    res.status(200).json({ totalOngoingProjects, totalCompletedProjects });
+    const totalScheduledProjects = projects.reduce((acc, project) => {
+      return acc + project.scheduledProjects.length;
+    }, 0);
+    const totalRevisionProjects = projects.reduce((acc, project) => {
+      return acc + project.revisionProjects.length;
+    }, 0);
+    const totalAwaitingApprovalProjects = projects.reduce((acc, project) => {
+      return acc + project.awaitingApprovalProjects.length;
+    }, 0);
+    const totalCancelledProjects = projects.reduce((acc, project) => {
+      return acc + project.cancelledProjects.length;
+    }, 0);
+
+    res.status(200).json({
+      totalOngoingProjects,
+      totalCompletedProjects,
+      totalScheduledProjects,
+      totalRevisionProjects,
+      totalAwaitingApprovalProjects,
+      totalCancelledProjects,
+    });
   } catch (error) {
     next(error);
   }
@@ -49,9 +70,26 @@ const getOngoingProjectsCountByUser = async (req, res, next) => {
     const completedCount = userProjects
       ? userProjects.projectHistory.length
       : 0;
+    const scheduledCount = userProjects
+      ? userProjects.scheduledProjects.length
+      : 0;
+    const revisionCount = userProjects
+      ? userProjects.revisionProjects.length
+      : 0;
+    const awaitingApprovalCount = userProjects
+      ? userProjects.awaitingApprovalProjects.length
+      : 0;
+    const cancelledCount = userProjects
+      ? userProjects.cancelledProjects.length
+      : 0;
+
     res.status(200).json({
       ongoingProjectsCount: ongoingCount,
       completedProjectsCount: completedCount,
+      scheduledProjectsCount: scheduledCount,
+      revisionProjectsCount: revisionCount,
+      awaitingApprovalProjectsCount: awaitingApprovalCount,
+      cancelledProjectsCount: cancelledCount,
     });
   } catch (error) {
     next(error);
@@ -78,22 +116,13 @@ const getTotalRevenue = async (req, res, next) => {
 const addNewProject = async (req, res, next) => {
   console.log("req.body: ", req.body);
   try {
-    const {
-      email,
-      projectName,
-      // description,
-      // startDate,
-      // endDate,
-      // status,
-      // progress,
-      price,
-    } = req.body;
+    const { email, projectName, startDate, price } = req.body;
 
     const newProject = {
-      chatId: uuidv4(), // <-- Add this
+      chatId: uuidv4(),
       projectName,
       description: "",
-      startDate: null, // set startDate as null
+      startDate,
       endDate: null, // set endDate as null
       status: "Scheduled",
       progress: 0,
@@ -109,13 +138,14 @@ const addNewProject = async (req, res, next) => {
     } else {
       console.log("User not found");
     }
+
     // Find the user's projects by email
     let userProjects = await UserProjects.findOne({ email: email });
 
     const exisitngUserProjects = await UserProjects.findOne({ user: user._id });
 
     if (exisitngUserProjects) {
-      exisitngUserProjects.ongoingProjects.push(newProject);
+      exisitngUserProjects.scheduledProjects.push(newProject);
       await exisitngUserProjects.save();
 
       res.status(201).json(exisitngUserProjects);
@@ -124,7 +154,7 @@ const addNewProject = async (req, res, next) => {
         email: email,
         user: user ? user._id : null,
         userName: user ? user.firstName : null,
-        ongoingProjects: [newProject],
+        scheduledProjects: [newProject],
       });
 
       await userProjects.save();
@@ -162,36 +192,75 @@ const updateProject = async (req, res, next) => {
     const projectId = req.params.projectId;
     const userId = req.params.userId;
 
-    const updatedProject = await UserProjects.findOneAndUpdate(
-      { user: userId, "ongoingProjects._id": projectId },
-      {
-        $set: {
-          "ongoingProjects.$.startDate": updateData.startDate,
-          "ongoingProjects.$.endDate": updateData.endDate,
-          "ongoingProjects.$.status": updateData.status,
-          "ongoingProjects.$.progress": updateData.progress,
-        },
-      },
-      { new: true }
-    );
+    const userProjects = await UserProjects.findOne({ user: userId });
+    if (!userProjects) {
+      res.status(404).json({ message: "User's projects not found" });
+      return;
+    }
 
-    if (!updatedProject) {
+    let projectToUpdate = null;
+    let sourceArrayName = "";
+
+    // Determine which array the project is in
+    [
+      "ongoingProjects",
+      "scheduledProjects",
+      "revisionProjects",
+      "awaitingApprovalProjects",
+      "cancelledProjects",
+      "projectHistory",
+    ].forEach((arrayName) => {
+      if (!projectToUpdate) {
+        projectToUpdate = userProjects[arrayName].find(
+          (p) => p._id.toString() === projectId
+        );
+        if (projectToUpdate) sourceArrayName = arrayName;
+      }
+    });
+
+    if (!projectToUpdate) {
       res.status(404).json({ message: "Project not found" });
       return;
     }
 
-    if (updateData.status === "Completed") {
-      const projectToMove = updatedProject.ongoingProjects.find(
-        (project) => project._id.toString() === projectId
-      );
-      updatedProject.ongoingProjects = updatedProject.ongoingProjects.filter(
-        (project) => project._id.toString() !== projectId
-      );
-      updatedProject.projectHistory.push(projectToMove);
+    // Update the project data
+    Object.assign(projectToUpdate, updateData);
+
+    // If the project status has changed, move the project to the appropriate array
+    let targetArrayName = "";
+
+    switch (updateData.status) {
+      case "Scheduled":
+        targetArrayName = "scheduledProjects";
+        break;
+      case "In Progress":
+        targetArrayName = "ongoingProjects";
+        break;
+      case "Revision":
+        targetArrayName = "revisionProjects";
+        break;
+      case "Awaiting Approval":
+        targetArrayName = "awaitingApprovalProjects";
+        break;
+      case "Cancelled":
+        targetArrayName = "cancelledProjects";
+        break;
+      case "Completed":
+        targetArrayName = "projectHistory";
+        break;
+      default:
+        targetArrayName = sourceArrayName; // Keep in the same array if status isn't recognized
     }
 
-    await updatedProject.save();
-    res.status(200).json(updatedProject);
+    if (sourceArrayName !== targetArrayName) {
+      userProjects[sourceArrayName] = userProjects[sourceArrayName].filter(
+        (p) => p._id.toString() !== projectId
+      );
+      userProjects[targetArrayName].push(projectToUpdate);
+    }
+
+    await userProjects.save();
+    res.status(200).json(userProjects);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error" });

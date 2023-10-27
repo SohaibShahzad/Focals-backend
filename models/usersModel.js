@@ -25,6 +25,10 @@ const userSchema = new mongoose.Schema(
     otpExpires: {
       type: Date,
     },
+    googleId: {
+      type: String,
+      sparse: true,
+    },
   },
   {
     timestamps: true,
