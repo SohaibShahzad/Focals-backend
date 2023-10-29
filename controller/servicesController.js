@@ -327,6 +327,45 @@ const updateServiceById = async (req, res, next) => {
   }
 };
 
+const getServicesWithThumbs = async (req, res, next) => {
+  try {
+    const services = await Service.find({}, 'title description thumbnail category');
+
+    const servicesWithThumbnails = await Promise.all(
+      services.map(async (service) => {
+        try {
+          const thumbnailData = await cloudinary.api.resource(
+            service.thumbnail,
+            { resource_type: "image" }
+          );
+
+          return {
+            title: service.title,
+            description: service.description,
+            thumbnail: thumbnailData.secure_url,
+            category: service.category
+          };
+        } catch (error) {
+          console.error(
+            `Error fetching thumbnail with public ID ${service.thumbnail}:`,
+            error
+          );
+          return {
+            ...service._doc,
+            thumbnail: null, // or a placeholder image URL
+          };
+        }
+      })
+    );
+
+    res.json(servicesWithThumbnails);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching services with thumbnails" });
+    next(error);
+  }
+};
+
+
 module.exports = {
   getAllServices,
   getCategories,
@@ -338,5 +377,6 @@ module.exports = {
   deleteService,
   updateServiceById,
   getServicesTitle,
+  getServicesWithThumbs,
   parser,
 };

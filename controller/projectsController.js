@@ -226,6 +226,11 @@ const updateProject = async (req, res, next) => {
     // Update the project data
     Object.assign(projectToUpdate, updateData);
 
+    // If the status is changing, update the createdAt timestamp to reflect the status change
+    if (projectToUpdate.status !== updateData.status) {
+      projectToUpdate.createdAt = new Date();
+    }
+
     // If the project status has changed, move the project to the appropriate array
     let targetArrayName = "";
 

@@ -10,11 +10,13 @@ const {
   deleteService,
   updateServiceById,
   getServicesTitle,
+  getServicesWithThumbs,
   parser,
 } = require("../controller/servicesController");
 const router = express.Router();
 
 router.get("/getAllServices", getAllServices);
+router.get("/getServicesWithThumbs", getServicesWithThumbs);
 router.get("/getCategories", getCategories);
 router.get("/getServicesTitle",getServicesTitle)
 router.get("/getTotalServicesCount", getTotalServicesCount);
