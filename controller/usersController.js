@@ -119,6 +119,15 @@ const verifyUser = async (req, res, next) => {
 };
 
 const otpEmail = async (req, res, next) => {
+  try {
+    const existingUser = await User.findOne({ username: req.body.username });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already in use. Please login" });
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: "Error checking User" });
+  }
   const otp = crypto.randomInt(100000, 999999).toString();
   const otpExpires = new Date();
   otpExpires.setMinutes(otpExpires.getMinutes() + 10);
@@ -156,9 +165,21 @@ const otpEmail = async (req, res, next) => {
   let mailOptions = {
     from: "FutureFocals",
     to: req.body.username,
-    subject: `OTP for Registeration at FutureFocals`,
+    subject: `OTP for Registration at FutureFocals`,
+    html: `
+      <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333;">
+        <h2>Welcome to FutureFocals!</h2>
+        <p>Your One-Time Password (OTP) for account verification is:</p>
+        <p style="font-size: 24px; font-weight: bold; color: #4a90e2;">${otp}</p>
+        <p>This OTP is valid for <strong>10 minutes</strong>. Please do not share this OTP with anyone.</p>
+        <hr>
+        <p>If you did not request this, please ignore this email.</p>
+      </div>
+    `,
+    // Keeping the text version for email clients that do not support HTML
     text: `Your OTP is ${otp} and it will expire in 10 minutes`,
   };
+  
 
   transporter.sendMail(mailOptions, function (err, info) {
     if (err) {
@@ -206,8 +227,20 @@ const resetPasswordRequest = async (req, res, next) => {
       from: "FutureFocals",
       to: username,
       subject: `OTP for Password Reset at FutureFocals`,
-      text: `Your OTP is ${otp} and it will expire in 10 minutes`,
+      html: `
+        <div style="font-family: Arial, sans-serif; font-size: 16px; color: #333;">
+          <h2>Password Reset Request</h2>
+          <p>You have requested to reset your password for your FutureFocals account. Please use the OTP below to proceed:</p>
+          <p style="font-size: 24px; font-weight: bold; color: #4a90e2;">${otp}</p>
+          <p>This OTP is valid for <strong>10 minutes</strong>. If you did not request a password reset, please ignore this email or contact support.</p>
+          <hr>
+          <p>If you have any questions, feel free to reply to this email. We're always here to help!</p>
+        </div>
+      `,
+      // Keeping the text version for email clients that do not support HTML
+      text: `Your OTP for password reset is ${otp} and it will expire in 10 minutes`,
     };
+    
 
     transporter.sendMail(mailOptions, function (err, info) {
       if (err) {
@@ -310,9 +343,7 @@ const saveGoogleUser = async (req, res) => {
     );
 
     // Send success response with token and user data
-    res
-      .status(200)
-      .json({ message: "Verified!!", token: token });
+    res.status(200).json({ message: "Verified!!", token: token });
   } catch (error) {
     // Log the error (you may also want to send it to an error tracking service)
     console.error(error);
