@@ -15,6 +15,7 @@ const User = require("./models/usersModel");
 const Message = require("./models/messageModel");
 const UsersChat = require("./models/usersChatModel");
 const servicesRoute = require("./routes/servicesRoute");
+const notificationsRoute = require("./routes/notificationRoute");
 const blogsRoute = require("./routes/blogsRoute");
 const portfolioRoute = require("./routes/portfolioRoute");
 const adminsRoute = require("./routes/adminsRoute");
@@ -26,6 +27,7 @@ const testimonialsRoute = require("./routes/testimonialsRoute");
 const projectsRoute = require("./routes/projectsRoute");
 const socialLinksRoute = require("./routes/socialLinksRoute");
 const termsAndPolicyRoute = require("./routes/termsAndPolicyRoute");
+const ioModule = require("./utils/io");
 
 const app = express();
 const mulParse = multer();
@@ -115,6 +117,7 @@ app.use("/users", parseData, usersRoute);
 app.use("/session", parseData, sessionRoute);
 app.use("/testimonials", parseData, testimonialsRoute);
 app.use("/projects", parseData, projectsRoute);
+app.use("/notifications", parseData, notificationsRoute);
 app.use("/socials", parseData, socialLinksRoute);
 app.use("/termsPolicy", parseData, termsAndPolicyRoute);
 
@@ -122,7 +125,7 @@ app.use("/termsPolicy", parseData, termsAndPolicyRoute);
 const PORT = process.env.PORT || 5050;
 const server = http.createServer(app);
 
-const io = socketIO(server, {
+ioModule.init(server, {
   cors: {
     // origin: "http://31.220.62.249:3000",
     origin: "http://localhost:3000",
@@ -132,8 +135,28 @@ const io = socketIO(server, {
   },
 });
 
+const io = ioModule.getIO();
+
 const projectChatNS = io.of("/projectChats");
 const usersChatNS = io.of("/usersChats");
+const notificationsNS = io.of("/notifications");
+
+notificationsNS.on("connection", (socket) => {
+  console.log("New client connected");
+
+  socket.on("register", (userId) => {
+    socket.join(userId);
+    console.log(`Registered ${userId}`);
+  });
+
+  socket.on("notifyUser", ({ userId, message }) => {
+    notificationsNS.to(userId).emit("notification", {
+      message: message,
+      date: new Date(),
+    });
+    console.log(`Notification sent to user ${userId}: ${message}`);
+  });
+});
 
 projectChatNS.on("connection", (socket) => {
   console.log("New client connected");
@@ -214,3 +237,5 @@ usersChatNS.on("connection", (socket) => {
 server.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
+
+module.exports = { app, server };
