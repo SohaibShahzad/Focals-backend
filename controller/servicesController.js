@@ -340,6 +340,7 @@ const getServicesWithThumbs = async (req, res, next) => {
           );
 
           return {
+            id: service._id,
             title: service.title,
             description: service.description,
             thumbnail: thumbnailData.secure_url,
