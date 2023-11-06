@@ -2,10 +2,6 @@ const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema(
   {
-    chatId: {
-      type: String,
-      required: true,
-    },
     user: {
       type: String,
       required: true,
@@ -14,12 +10,29 @@ const messageSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    isRead: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
-    timestamps: true, // will add createdAt and updatedAt fields automatically
+    timestamps: true, // will add createdAt and updatedAt for each message
   }
 );
 
-const Message = mongoose.model("Message", messageSchema);
+const chatSchema = new mongoose.Schema(
+  {
+    chatId: {
+      type: String,
+      required: true,
+    },
+    messages: [messageSchema], // An array of message documents
+  },
+  {
+    timestamps: true, // will add createdAt and updatedAt for each chat document
+  }
+);
 
-module.exports = Message;
+const Chat = mongoose.model("Chat", chatSchema);
+
+module.exports = Chat;

@@ -1,6 +1,6 @@
 const Notification = require("../models/notificationModel");
 
-const getNotficationsByUser = async (req, res, next) => {
+const getNotificationsByUser = async (req, res, next) => {
   const userId = req.params.userId; // Assuming the user's ID will be passed as a URL parameter
 
   try {
@@ -62,7 +62,7 @@ const markAllNotificationsAsRead = async (req, res, next) => {
 };
 
 module.exports = {
-  getNotficationsByUser,
+  getNotificationsByUser,
   markNotificationAsRead,
   markAllNotificationsAsRead,
 };

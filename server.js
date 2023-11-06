@@ -12,7 +12,7 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const Admin = require("./models/adminModel");
 const SubAdmin = require("./models/subAdminModel");
 const User = require("./models/usersModel");
-const Message = require("./models/messageModel");
+const Chat = require("./models/messageModel");
 const UsersChat = require("./models/usersChatModel");
 const servicesRoute = require("./routes/servicesRoute");
 const notificationsRoute = require("./routes/notificationRoute");
@@ -76,23 +76,6 @@ passport.deserializeUser((obj, done) => {
     });
   }
 });
-
-// passport.use(
-//   new GoogleStrategy(
-//     {
-//       clientID: process.env.GOOGLE_CLIENT_ID,
-//       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-//       callbackURL: `${process.env.SERVER_URL}auth/google/callback`,
-//       userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
-//     },
-//     function (accessToken, refreshToken, profile, done) {
-//       console.log("profile", profile);
-//       console.log("accessToken", accessToken);
-//       console.log("refreshToken", refreshToken);
-//     }
-//   )
-// );
-
 // Setup routes
 
 app.get("/api/youtube-proxy", async (req, res) => {
@@ -159,78 +142,104 @@ notificationsNS.on("connection", (socket) => {
 });
 
 projectChatNS.on("connection", (socket) => {
-  console.log("New client connected");
+  console.log("New project chat client connected");
 
   socket.on("join", async ({ chatId, user }) => {
     socket.join(chatId);
-    console.log(`${user} joined ${chatId}`);
+    console.log(`${user} joined chat ${chatId}`);
 
-    const messages = await Message.find({ chatId }).sort({ createdAt: 1 });
-    socket.emit("chatHistory", messages);
+    let chat = await Chat.findOne({ chatId: chatId });
+    if (!chat) {
+      chat = await Chat.create({ chatId: chatId, messages: [] });
+    }
+
+    socket.emit("chatHistory", chat.messages);
   });
 
   socket.on("requestChatHistory", async ({ chatId }) => {
-    const messages = await Message.find({ chatId }).sort({ createdAt: 1 });
-    socket.emit("chatHistory", messages);
+    const chat = await Chat.findOne({ chatId: chatId });
+    socket.emit("chatHistory", chat ? chat.messages : []);
   });
 
   socket.on("chat", async ({ chatId, user, message }) => {
-    // Log the received message
-    console.log(
-      `Received message: ${message} from user: ${user} in chatId: ${chatId}`
+    console.log(`Message from ${user} in chat ${chatId}: ${message}`);
+
+    let chat = await Chat.findOneAndUpdate(
+      { chatId: chatId },
+      { $push: { messages: { user, message } } },
+      { new: true, upsert: true }
     );
 
-    const savedMessages = await Message.create({ chatId, user, message });
-
-    projectChatNS.to(chatId).emit("chat", savedMessages);
+    // Emit the latest message to all clients in the room
+    projectChatNS
+      .to(chatId)
+      .emit("chat", chat.messages[chat.messages.length - 1]);
   });
 
   socket.on("leave", ({ chatId, user }) => {
     socket.leave(chatId);
-    console.log(`${user} left ${chatId}`);
+    console.log(`${user} left chat ${chatId}`);
   });
 
   socket.on("disconnect", () => {
-    console.log("Client disconnected");
+    console.log("Project chat client disconnected");
   });
 });
 
 usersChatNS.on("connection", (socket) => {
-  console.log("Connected in UsersChat");
+  console.log("New user chat client connected");
 
-  socket.on("join", async ({ chatId, sender, receiver }) => {
+  socket.on("join", async ({ chatId, user }) => {
     socket.join(chatId);
-    console.log(`${sender} joined ${chatId} with ${receiver}`);
-    const chat = await UsersChat.findOne({ chatId });
-    socket.emit("chatHistory", chat);
-  });
+    console.log(`${user} joined chat ${chatId}`);
 
-  socket.on("requestChatHistory", async ({ chatId, sender, receiver }) => {
-    const messages = await UsersChat.findOne({ chatId });
-    socket.emit("chatHistory", messages);
-  });
-
-  socket.on("chat", async ({ chatId, messageData }) => {
-    console.log(`Received message: ${messageData.sender} in chatId: ${chatId}`);
-
-    let chat = await UsersChat.findOne({ chatId });
-
+    let chat = await Chat.findOne({ chatId: chatId });
     if (!chat) {
-      chat = await UsersChat.create({ chatId, messages: [] });
+      chat = await Chat.create({ chatId: chatId, messages: [] });
     }
 
-    chat.messages.push(messageData);
-    await chat.save();
-    usersChatNS.to(chatId).emit("chat", chat);
+    socket.emit("chatHistory", chat.messages);
   });
 
-  socket.on("leave", ({ chatId }) => {
+  socket.on("requestChatHistory", async ({ chatId }) => {
+    const chat = await Chat.findOne({ chatId: chatId });
+    socket.emit("chatHistory", chat ? chat.messages : []);
+  });
+
+  socket.on("chat", async ({ chatDetails, messageData }) => {
+    console.log(
+      `Message from ${messageData.sender} in chat ${chatDetails.id || chatDetails._id}: ${messageData.message}`
+    );
+
+    let chat = await Chat.findOneAndUpdate(
+      { chatId: chatDetails.id || chatDetails._id },
+      {
+        $push: {
+          messages: {
+            user: messageData.sender,
+            message: messageData.message,
+            isRead: false,
+          },
+        },
+      }, // Update this line to match the incoming data structure
+      { new: true }
+    );
+    if (chat) {
+      console.log("Chat: ", chat);
+      console.log("Chat messages: ", chat.messages[chat.messages.length - 1]);
+      usersChatNS
+        .to(chatDetails.id)
+        .emit("chat", chat.messages[chat.messages.length - 1]);
+    }
+  });
+
+  socket.on("leave", ({ chatId, user }) => {
     socket.leave(chatId);
-    console.log(`left ${chatId}`);
+    console.log(`${user} left chat ${chatId}`);
   });
 
   socket.on("disconnect", () => {
-    console.log("Client disconnected");
+    console.log("User chat client disconnected");
   });
 });
 
