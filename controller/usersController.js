@@ -99,7 +99,6 @@ const verifyUser = async (req, res, next) => {
       if (!user.isVerified) {
         return res.status(401).json({ message: "User not verified" });
       }
-      console.log(user);
       // const name = foundUser[0].firstName + " " + foundUser[0].lastName
 
       const token = jwt.sign(
@@ -312,10 +311,28 @@ const saveGoogleUser = async (req, res) => {
     // Check for existing user by username
     const existingUser = await User.findOne({ username });
     if (existingUser) {
-      console.log("User already exists");
-      return res.status(400).json({ message: "User already exists" });
+    const user = await User.findById(existingUser._id);
+
+      const token = jwt.sign(
+        {
+          id: user._id,
+          type: "user",
+          username,
+          firstName: user.firstName,
+        },
+        "FUTUREfocals", // This should ideally come from an environment variable for better security
+        {
+          expiresIn: "7d",
+        }
+      );
+  
+      // Send success response with token and user data
+      return res.status(200).json({ message: "Verified!!", token: token, user:user });
     }
 
+    if(username && firstName){
+
+    
     // Create new user object
     const newUser = new User({
       firstName,
@@ -331,7 +348,7 @@ const saveGoogleUser = async (req, res) => {
     // Generate JWT token for user
     const token = jwt.sign(
       {
-        id: newUser.googleId,
+        id: newUser._id,
         type: "user",
         username,
         firstName: newUser.firstName,
@@ -344,6 +361,7 @@ const saveGoogleUser = async (req, res) => {
 
     // Send success response with token and user data
     res.status(200).json({ message: "Verified!!", token: token });
+    }
   } catch (error) {
     // Log the error (you may also want to send it to an error tracking service)
     console.error(error);
