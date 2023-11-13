@@ -30,7 +30,7 @@ const app = express();
 const mulParse = multer();
 const parseData = mulParse.none();
 
-app.use('/portfolio', express.static('/var/www/media/portfolio'));
+app.use('/portfolio-images', express.static('/var/www/media/portfolio'));
 
 app.use(
   cors({

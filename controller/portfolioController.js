@@ -5,7 +5,7 @@ const fs = require("fs");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "/var/www/media/portfolio");
+    cb(null, "/var/www/media/portfolio-images");
   },
   filename: function (req, file, cb) {
     cb(
@@ -63,7 +63,7 @@ const addNewPortfolio = async (req, res, next) => {
   const { title, clientName, description, url, stars, category, isSpecial } =
     req.body;
   const parsedUrl = JSON.parse(url);
-  const images = req.files.map((file) => `/portfolio/${file.filename}`);
+  const images = req.files.map((file) => `/portfolio-images/${file.filename}`);
 
   const parsedPortfolio = {
     title,
@@ -97,7 +97,7 @@ const deletePortfolio = async (req, res, next) => {
 
     portfolioToDelete.images.forEach((imageUrl) => {
       const filename = path.basename(imageUrl);
-      fs.unlink(`/var/www/media/portfolio/${filename}`, (err) => {
+      fs.unlink(`/var/www/media/portfolio-images/${filename}`, (err) => {
         if (err) console.error("Error deleting file:", err);
       });
     });
@@ -129,12 +129,12 @@ const updatePortfolioById = async (req, res, next) => {
       .map((url) => path.basename(url));
 
     toDeleteFilenames.forEach((filename) => {
-      fs.unlink(`/var/www/media/portfolio/${filename}`, (err) => {
+      fs.unlink(`/var/www/media/portfolio-images/${filename}`, (err) => {
         if (err) console.error("Error deleting file:", err);
       });
     });
 
-    const newImageUrls = req.files.map((file) => `/portfolio/${file.filename}`);
+    const newImageUrls = req.files.map((file) => `/portfolio-images/${file.filename}`);
     const updatedImages = existingImagesUrls.concat(newImageUrls);
 
     const updatedPortfolio = {
