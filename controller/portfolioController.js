@@ -63,9 +63,7 @@ const addNewPortfolio = async (req, res, next) => {
   const { title, clientName, description, url, stars, category, isSpecial } =
     req.body;
   const parsedUrl = JSON.parse(url);
-  const images = req.files.map(
-    (file) => `http://www.futurefocals.com/portfolio/${file.filename}`
-  );
+  const images = req.files.map((file) => `/portfolio/${file.filename}`);
 
   const parsedPortfolio = {
     title,
@@ -126,7 +124,6 @@ const updatePortfolioById = async (req, res, next) => {
     const parsedUrl = JSON.parse(url);
 
     const existingImagesUrls = req.body.images || [];
-
     const toDeleteFilenames = portfolioToUpdate.images
       .filter((imageUrl) => !existingImagesUrls.includes(imageUrl))
       .map((url) => path.basename(url));
@@ -137,9 +134,7 @@ const updatePortfolioById = async (req, res, next) => {
       });
     });
 
-    const newImageUrls = req.files.map(
-      (file) => `http://www.futurefocals.com/portfolio/${file.filename}`
-    );
+    const newImageUrls = req.files.map((file) => `/portfolio/${file.filename}`);
     const updatedImages = existingImagesUrls.concat(newImageUrls);
 
     const updatedPortfolio = {

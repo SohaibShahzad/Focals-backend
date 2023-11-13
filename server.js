@@ -2,18 +2,15 @@
 const express = require("express");
 const connectDB = require("./utils/db");
 const http = require("http");
-const socketIO = require("socket.io");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const multer = require("multer");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const Admin = require("./models/adminModel");
 const SubAdmin = require("./models/subAdminModel");
 const User = require("./models/usersModel");
 const Chat = require("./models/messageModel");
-const UsersChat = require("./models/usersChatModel");
 const servicesRoute = require("./routes/servicesRoute");
 const notificationsRoute = require("./routes/notificationRoute");
 const blogsRoute = require("./routes/blogsRoute");
@@ -32,6 +29,8 @@ const ioModule = require("./utils/io");
 const app = express();
 const mulParse = multer();
 const parseData = mulParse.none();
+
+app.use('/portfolio', express.static('/var/www/media/portfolio'));
 
 app.use(
   cors({
