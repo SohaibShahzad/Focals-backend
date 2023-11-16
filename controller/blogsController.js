@@ -1,59 +1,47 @@
 const Blog = require("../models/blogModel");
 const multer = require("multer");
 const path = require("path");
-const cloudinary = require("../utils/cloudinaryConfig");
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const fs = require("fs");
+// const cloudinary = require("../utils/cloudinaryConfig");
+// const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: "blogs",
-    format: async (req, file) => {
-      // Get the file extension
-      const fileExtension = path.extname(file.originalname).toLowerCase();
-
-      // Check if the extension is allowed and return the format
-      if (fileExtension === ".jpg" || fileExtension === ".jpeg") {
-        return "jpg";
-      } else if (fileExtension === ".png") {
-        return "png";
-      } else {
-        throw new Error("Unsupported file format");
-      }
-    },
-    public_id: (req, file) => {
-      // Remove file extension and add a unique identifier to the public ID
-      const uniqueID = Date.now();
-      return `blogs/${path.parse(file.originalname).name}_${uniqueID}`;
-    },
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "/var/www/media/blog-images");
+  },
+  filename: function (req, file, cb) {
+    cb(
+      null,
+      file.fieldname + "-" + Date.now() + path.extname(file.originalname)
+    );
   },
 });
 
-const parser = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 11000000 },
+  fileFilter: function (req, file, cb) {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const extname = filetypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
+    const mimetype = filetypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb("Error: Images Only!");
+    }
+  },
+});
 
 const getAllBlogs = async (req, res, next) => {
   try {
     const blogs = await Blog.find({});
-
-    const blogsWithImages = await Promise.all(
-      blogs.map(async (blog) => {
-        try {
-          const imageData = await cloudinary.api.resource(blog.image, {
-            resource_type: "image",
-          });
-          return {
-            ...blog._doc,
-            image: imageData.secure_url,
-          };
-        } catch (error) {
-          console.error(
-            `Error fetching image with public ID ${blog.image}:`,
-            error
-          );
-          return blog;
-        }
-      })
-    );
+    const blogsWithImages = blogs.map((blog) => ({
+      ...blog._doc,
+      image: blog.image,
+    }));
 
     res.json(blogsWithImages);
   } catch (error) {
@@ -69,7 +57,7 @@ const getTotalBlogsCount = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-}
+};
 
 const getBlogWithImage = async (req, res, next) => {
   try {
@@ -77,51 +65,41 @@ const getBlogWithImage = async (req, res, next) => {
     const blog = await Blog.findById(blogId);
 
     if (!blog) {
-      throw new Error("Blog not found");
+      return res.status(404).json({ message: "Blog not found" });
     }
-
-    const imageData = await cloudinary.api.resource(blog.image, {
-      resource_type: "image",
-    });
+    const imageUrl = `http://31.220.62.249/blog-images/${path.basename(
+      blog.image
+    )}`;
 
     res.json({
       ...blog._doc,
-      image: imageData.secure_url,
+      image: imageUrl, // Provide the direct URL to the image
     });
   } catch (error) {
     next(error);
   }
 };
-
 
 const deleteBlog = async (req, res, next) => {
   try {
     const blogId = req.params.id;
-    const blog = await Blog.findById(blogId);
+    const blogToDelete = await Blog.findById(blogId);
 
-    if (!blog) {
-      return res.status(404).json({ message: 'Blog not found' });
+    if (!blogToDelete) {
+      return res.status(404).json({ message: "Blog not found" });
     }
 
-    // Delete the image from Cloudinary using destroy function
-    await cloudinary.uploader.destroy(blog.image);
+    // Delete the image file from the local storage
+    const imagePath = path.join(
+      "/var/www/media/blog-images",
+      path.basename(blogToDelete.image)
+    );
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+    }
 
-    // Delete the blog from MongoDB
-    const deletedBlog = await Blog.findByIdAndDelete(blogId);
-
-    res.json(deletedBlog);
-  } catch (error) {
-    next(error);
-  }
-};
-
-
-
-const deleteBlogsss = async (req, res, next) => {
-  try {
-    const blogid = req.url.toString().split("/");
-    const deletedBlog = await Blog.findByIdAndDelete(blogid[2]);
-    res.json(deletedBlog);
+    await Blog.findByIdAndDelete(blogId);
+    res.json({ message: "Blog deleted successfully" });
   } catch (error) {
     next(error);
   }
@@ -160,10 +138,11 @@ const getSpecialBlog = async (req, res, next) => {
 const updateBlogById = async (req, res, next) => {
   try {
     const blogId = req.params.id;
-    const blog = await Blog.findById(blogId);
-    if (!blog) {
-      res.status(404).json({ message: "Blog not found" });
+    const blogToUpdate = await Blog.findById(blogId);
+    if (!blogToUpdate) {
+      return res.status(404).json({ message: "Blog not found" });
     }
+
     const { title, content, author, blogTags, isSpecial } = req.body;
     const formattedDate = new Date(req.body.date);
     const date = formattedDate.toLocaleDateString("en-US", {
@@ -174,19 +153,18 @@ const updateBlogById = async (req, res, next) => {
 
     let tags;
     if (blogTags) {
-      const parsedTags = JSON.parse(blogTags);
-      tags = parsedTags.map((element) => {
-        return element.replaceAll(" ", "");
-      });
+      tags = JSON.parse(blogTags).map((tag) => tag.trim().replace(/\s+/g, '-'));
     }
 
-    let image = blog.image;
+    let image = blogToUpdate.image;
     if (req.file) {
-      if (req.file.filename !== blog.image) {
-        await cloudinary.uploader.destroy(blog.image);
+      // Remove the old image if it exists
+      const oldImagePath = `/var/www/media/blog-images/${path.basename(blogToUpdate.image)}`;
+      if (fs.existsSync(oldImagePath)) {
+        fs.unlinkSync(oldImagePath);
       }
-
-      image = req.file.filename;
+      // Update with the new image path
+      image = `http://31.220.62.249/blog-images/${req.file.filename}`;
     }
 
     const updatedBlogData = {
@@ -194,15 +172,18 @@ const updateBlogById = async (req, res, next) => {
       content,
       author,
       date,
-      image,
+      image, // this will be either the new image or the old one if no new image was uploaded
+      tags,
       isSpecial,
     };
-    const updatedBlog = await Blog.findByIdAndUpdate(blogId, updatedBlogData);
-    res.json(updatedBlog);
+
+    const updatedBlog = await Blog.findByIdAndUpdate(blogId, updatedBlogData, { new: true });
+    res.json({ message: "Blog updated successfully", data: updatedBlog });
   } catch (error) {
     next(error);
   }
 };
+
 
 const addNewBlogWithImage = async (req, res, next) => {
   const { title, content, author, blogTags, isSpecial } = req.body;
@@ -216,18 +197,19 @@ const addNewBlogWithImage = async (req, res, next) => {
   const tags = parsedTags.map((element) => {
     return element.replaceAll(" ", "");
   });
-  const image = req.file.filename;
+  const image = req.file
+    ? `http://31.220.62.249/blog-images/${req.file.filename}`
+    : null;
 
-  const parsedBlog = {
+  const newBlog = new Blog({
     title,
     content,
     author,
     date,
-    image,
+    image, // Save the relative path to the image in the database
     isSpecial,
-  };
+  });
 
-  const newBlog = new Blog(parsedBlog);
   try {
     const savedBlog = await newBlog.save();
     res.status(200).json({ message: `Blog Saved and the obj is ${savedBlog}` });
@@ -244,5 +226,5 @@ module.exports = {
   addNewBlogWithImage,
   deleteBlog,
   updateBlogById,
-  parser,
+  upload,
 };

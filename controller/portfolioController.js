@@ -17,9 +17,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 11000000 }, // Adjust file size limit as needed
+  limits: { fileSize: 11000000 },
   fileFilter: function (req, file, cb) {
-    // Allowed file extensions
     const filetypes = /jpeg|jpg|png|gif/;
     const extname = filetypes.test(
       path.extname(file.originalname).toLowerCase()
@@ -63,7 +62,7 @@ const addNewPortfolio = async (req, res, next) => {
   const { title, clientName, description, url, stars, category, isSpecial } =
     req.body;
   const parsedUrl = JSON.parse(url);
-  const images = req.files.map((file) => `/portfolio-images/${file.filename}`);
+  const images = req.files.map((file) => `http://31.220.62.249/portfolio-images/${file.filename}`);
 
   const parsedPortfolio = {
     title,
@@ -134,7 +133,7 @@ const updatePortfolioById = async (req, res, next) => {
       });
     });
 
-    const newImageUrls = req.files.map((file) => `/portfolio-images/${file.filename}`);
+    const newImageUrls = req.files.map((file) => `http://31.220.62.249/portfolio-images/${file.filename}`);
     const updatedImages = existingImagesUrls.concat(newImageUrls);
 
     const updatedPortfolio = {

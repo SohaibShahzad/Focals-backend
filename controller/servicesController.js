@@ -1,35 +1,38 @@
 const Service = require("../models/serviceModel");
 const multer = require("multer");
 const path = require("path");
-const cloudinary = require("../utils/cloudinaryConfig");
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const fs = require("fs");
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: "services",
-    format: async (req, file) => {
-      // Get the file extension
-      const fileExtension = path.extname(file.originalname).toLowerCase();
-
-      // Check if the extension is allowed and return the format
-      if (fileExtension === ".jpg" || fileExtension === ".jpeg") {
-        return "jpg";
-      } else if (fileExtension === ".png") {
-        return "png";
-      } else {
-        throw new Error("Unsupported file format");
-      }
-    },
-    public_id: (req, file) => {
-      // Remove file extension and add a unique identifier to the public ID
-      const uniqueID = Date.now();
-      return `services/${path.parse(file.originalname).name}_${uniqueID}`;
-    },
+// Local storage configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "/var/www/media/service-images");
+  },
+  filename: function (req, file, cb) {
+    cb(
+      null,
+      file.fieldname + "-" + Date.now() + path.extname(file.originalname)
+    );
   },
 });
 
-const parser = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 11000000 },
+  fileFilter: function (req, file, cb) {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const extname = filetypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
+    const mimetype = filetypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb("Error: Images Only!");
+    }
+  },
+});
 
 const getAllServicesWithoutImages = async (req, res, next) => {
   try {
@@ -66,56 +69,18 @@ const getAllServices = async (req, res, next) => {
   try {
     const services = await Service.find({});
 
-    // Fetch the thumbnail URLs from Cloudinary
-    const servicesWithThumbnails = await Promise.all(
-      services.map(async (service) => {
-        try {
-          const thumbnailData = await cloudinary.api.resource(
-            service.thumbnail,
-            {
-              resource_type: "image",
-            }
-          );
+    // No need to fetch thumbnails and images from Cloudinary as they are stored as URLs
+    const servicesWithThumbnailsAndImages = services.map((service) => ({
+      ...service._doc,
+      thumbnail: service.thumbnail, // Direct URL for thumbnail
+      images: service.images, // Direct URLs for images
+    }));
 
-          const fetchedImages = await Promise.all(
-            service.images.map(async (publicId) => {
-              try {
-                return await cloudinary.api.resource(publicId, {
-                  resource_type: "image",
-                });
-              } catch (error) {
-                console.error(
-                  `Error fetching image with public ID ${publicId}:`,
-                  error
-                );
-                return null;
-              }
-            })
-          );
-
-          const validImagesData = fetchedImages.filter(
-            (imageUrl) => imageUrl !== null
-          );
-
-          // Return the service data with the fetched thumbnail URL
-          return {
-            ...service._doc,
-            thumbnail: thumbnailData.secure_url,
-            images: validImagesData.map((imageData) => imageData.secure_url),
-          };
-        } catch (error) {
-          console.error(
-            `Error fetching thumbnail with public ID ${service.thumbnail}:`,
-            error
-          );
-          return service;
-        }
-      })
-    );
-
-    res.json(servicesWithThumbnails);
+    res.json(servicesWithThumbnailsAndImages);
   } catch (error) {
-    res.status(500).json({ message: `service stuck here` });
+    res
+      .status(500)
+      .json({ message: "Error fetching services", error: error.message });
     next(error);
   }
 };
@@ -131,7 +96,6 @@ const getCategories = async (req, res, next) => {
     next(error);
   }
 };
-
 
 const getServicesTitle = async (req, res, next) => {
   try {
@@ -155,34 +119,13 @@ const getServiceDataAndImages = async (req, res, next) => {
     const service = await Service.findById(serviceId);
 
     if (!service) {
-      res.status(404).json({ message: "Service not found" });
-      return;
+      return res.status(404).json({ message: "Service not found" });
     }
-
-    const fetchedImages = await Promise.all(
-      service.images.map(async (publicId) => {
-        try {
-          return await cloudinary.api.resource(publicId, {
-            resource_type: "image",
-          });
-        } catch (error) {
-          console.error(
-            `Error fetching image with public ID ${publicId}:`,
-            error
-          );
-          return null;
-        }
-      })
-    );
-
-    const serviceDataWithImages = {
+    res.json({
       ...service._doc,
-      images: fetchedImages
-        .filter((img) => img !== null)
-        .map((img) => img.secure_url),
-    };
-
-    res.json(serviceDataWithImages);
+      images: service.images, // Direct URLs
+      // thumbnail: service.thumbnail, // Direct URL
+    });
   } catch (error) {
     next(error);
   }
@@ -193,9 +136,18 @@ const addNewServiceWithImages = async (req, res, next) => {
   const packages = JSON.parse(newPackages);
   const parsedUrl = JSON.parse(url);
 
+  // Handling the thumbnail image
   const thumbnailImage =
-    req.files.thumbnail.length > 0 ? req.files.thumbnail[0] : undefined;
-  const images = req.files.images.map((file) => file.filename);
+    req.files.thumbnail && req.files.thumbnail.length > 0
+      ? `http://31.220.62.249/service-images/${req.files.thumbnail[0].filename}`
+      : null;
+
+  // Handling multiple images
+  const images = req.files.images
+    ? req.files.images.map(
+        (file) => `http://31.220.62.249/service-images/${file.filename}`
+      )
+    : [];
 
   const parsedService = {
     title,
@@ -203,14 +155,16 @@ const addNewServiceWithImages = async (req, res, next) => {
     packages,
     images,
     url: parsedUrl,
-    thumbnail: thumbnailImage.filename,
-    category
+    thumbnail: thumbnailImage, // URL of the thumbnail image
+    category,
   };
 
   const newService = new Service(parsedService);
   try {
     const savedService = await newService.save();
-    res.status(200).json({ message: `Service is Successfully Saved!!` });
+    res
+      .status(200)
+      .json({ message: `Service is Successfully Saved!!`, data: savedService });
   } catch (error) {
     next(error);
   }
@@ -218,52 +172,38 @@ const addNewServiceWithImages = async (req, res, next) => {
 
 const deleteService = async (req, res, next) => {
   try {
-    const serviceid = req.url.toString().split("/");
-    const serviceToDelete = await Service.findById(serviceid[2]);
+    const serviceId = req.params.id; // Assuming you're passing the service ID in the URL parameters
+    const serviceToDelete = await Service.findById(serviceId);
 
     if (!serviceToDelete) {
       res.status(404).json({ message: "Service not found" });
       return;
     }
 
-    // Delete the service's images from Cloudinary
-    const deletePromises = serviceToDelete.images.map((publicId) => {
-      return cloudinary.uploader.destroy(publicId);
+    // Delete the service's images from local storage
+    serviceToDelete.images.forEach((imageUrl) => {
+      const filename = path.basename(imageUrl);
+      const imagePath = `/var/www/media/service-images/${filename}`;
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
     });
 
-    // Delete the service's thumbnail from Cloudinary
+    // Delete the service's thumbnail from local storage
     if (serviceToDelete.thumbnail) {
-      deletePromises.push(
-        cloudinary.uploader.destroy(serviceToDelete.thumbnail)
-      );
+      const thumbnailFilename = path.basename(serviceToDelete.thumbnail);
+      const thumbnailPath = `/var/www/media/service-images/${thumbnailFilename}`;
+      if (fs.existsSync(thumbnailPath)) {
+        fs.unlinkSync(thumbnailPath);
+      }
     }
 
-    await Promise.all(deletePromises);
-
-    const deletedService = await Service.findByIdAndDelete(serviceid[2]);
-
-    res.json(deletedService);
+    await Service.findByIdAndDelete(serviceId);
+    res.json({ message: "Service deleted successfully" });
   } catch (error) {
     next(error);
   }
 };
-
-const getPublicIdFromUrl = (url) => {
-  if (!url) return null;
-  let splitUrl = url.split("/");
-  // Remove the version part
-  splitUrl = splitUrl.filter((item) => !item.startsWith("v"));
-  // Remove the first 6 parts: ['', 'res.cloudinary.com', 'dgg6yikgk', 'image', 'upload']
-  splitUrl = splitUrl.slice(6);
-
-  // Remove file extension from the last part
-  let lastPart = splitUrl[splitUrl.length - 1];
-  splitUrl[splitUrl.length - 1] = lastPart.split(".")[0];
-
-  return splitUrl.join("/");
-};
-
-// After the map() call, filter out null values
 
 const updateServiceById = async (req, res, next) => {
   try {
@@ -278,36 +218,29 @@ const updateServiceById = async (req, res, next) => {
     const parsedUrl = JSON.parse(url);
 
     let thumbnail = serviceToUpdate.thumbnail;
-    if (req.files.thumbnail) {
-      if (req.files.thumbnail[0].filename !== serviceToUpdate.thumbnail) {
-        await cloudinary.uploader.destroy(serviceToUpdate.thumbnail);
+    if (req.files.thumbnail && req.files.thumbnail[0]) {
+      // Delete old thumbnail if it exists and is different from the new one
+      const oldThumbnailPath = `/var/www/media/service-images/${path.basename(
+        thumbnail
+      )}`;
+      if (fs.existsSync(oldThumbnailPath)) {
+        fs.unlinkSync(oldThumbnailPath);
       }
-      thumbnail = req.files.thumbnail[0].filename;
+      thumbnail = `http://31.220.62.249/service-images/${req.files.thumbnail[0].filename}`;
     }
 
-    let deletePromises = [];
-
-    // If req.body.images is not an array, make it an array
-    const imagesFromBody = Array.isArray(req.body.images)
-      ? req.body.images
-      : [req.body.images];
-    const existingImagesPublicIds = (imagesFromBody || [])
-      .map(getPublicIdFromUrl)
-      .filter((id) => id !== null);
-    const toDeletePublicIds = serviceToUpdate.images.filter(
-      (image) => !existingImagesPublicIds.includes(image)
+    let images = serviceToUpdate.images.map(
+      (img) => `http://31.220.62.249/service-images/${path.basename(img)}`
     );
-
-    let images = existingImagesPublicIds;
     if (req.files.images) {
-      images = [...images, ...req.files.images.map((file) => file.filename)];
+      // Add new images to the images array
+      images = [
+        ...images,
+        ...req.files.images.map(
+          (file) => `http://31.220.62.249/service-images/${file.filename}`
+        ),
+      ];
     }
-
-    deletePromises.push(
-      toDeletePublicIds.map((publicId) => cloudinary.uploader.destroy(publicId))
-    );
-
-    await Promise.all(deletePromises);
 
     const updateData = {
       title,
@@ -316,12 +249,11 @@ const updateServiceById = async (req, res, next) => {
       images,
       url: parsedUrl,
       thumbnail,
-      category
+      category,
     };
 
-    await Service.findByIdAndUpdate(serviceId, updateData);
-
-    res.status(200).json({ message: `Service is Successfully Updated!!` });
+    await Service.findByIdAndUpdate(serviceId, updateData, { new: true });
+    res.status(200).json({ message: `Service updated successfully` });
   } catch (error) {
     next(error);
   }
@@ -329,43 +261,28 @@ const updateServiceById = async (req, res, next) => {
 
 const getServicesWithThumbs = async (req, res, next) => {
   try {
-    const services = await Service.find({}, 'title description thumbnail category');
-
-    const servicesWithThumbnails = await Promise.all(
-      services.map(async (service) => {
-        try {
-          const thumbnailData = await cloudinary.api.resource(
-            service.thumbnail,
-            { resource_type: "image" }
-          );
-
-          return {
-            id: service._id,
-            title: service.title,
-            description: service.description,
-            thumbnail: thumbnailData.secure_url,
-            category: service.category
-          };
-        } catch (error) {
-          console.error(
-            `Error fetching thumbnail with public ID ${service.thumbnail}:`,
-            error
-          );
-          return {
-            ...service._doc,
-            thumbnail: null, // or a placeholder image URL
-          };
-        }
-      })
+    const services = await Service.find(
+      {},
+      "title description thumbnail category"
     );
+
+    // Map over the services to transform the thumbnail field
+    const servicesWithThumbnails = services.map((service) => ({
+      id: service._id,
+      title: service.title,
+      description: service.description,
+      thumbnail: service.thumbnail, // Use the thumbnail URL directly
+      category: service.category,
+    }));
 
     res.json(servicesWithThumbnails);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching services with thumbnails" });
+    res
+      .status(500)
+      .json({ message: "Error fetching services with thumbnails" });
     next(error);
   }
 };
-
 
 module.exports = {
   getAllServices,
@@ -379,5 +296,5 @@ module.exports = {
   updateServiceById,
   getServicesTitle,
   getServicesWithThumbs,
-  parser,
+  upload,
 };

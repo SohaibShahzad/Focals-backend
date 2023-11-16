@@ -30,7 +30,9 @@ const app = express();
 const mulParse = multer();
 const parseData = mulParse.none();
 
-app.use('/portfolio-images', express.static('/var/www/media/portfolio-images'));
+app.use("/portfolio-images", express.static("/var/www/media/portfolio-images"));
+app.use("/service-images", express.static("/var/www/media/service-images"));
+app.use("/blog-images", express.static("/var/www/media/blog-images"));
 
 app.use(
   cors({
@@ -207,7 +209,9 @@ usersChatNS.on("connection", (socket) => {
 
   socket.on("chat", async ({ chatDetails, messageData }) => {
     console.log(
-      `Message from ${messageData.sender} in chat ${chatDetails.id || chatDetails._id}: ${messageData.message}`
+      `Message from ${messageData.sender} in chat ${
+        chatDetails.id || chatDetails._id
+      }: ${messageData.message}`
     );
 
     let chat = await Chat.findOneAndUpdate(
